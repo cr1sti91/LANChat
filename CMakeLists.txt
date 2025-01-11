@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
+
 # Adding Boost with conan
 #####################################################################
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
@@ -23,6 +24,8 @@ if(NOT Boost_FOUND)
 endif()
 #####################################################################
 
+
+# The source files include header files so you can view them in QT Creator.
 file(GLOB qtWindowFiles QtWindow/*.cpp QtWindow/*.h)
 file(GLOB serverFiles Server/*.cpp Server/*.h)
 file(GLOB clientFiles Client/*.cpp Client/*.h)
@@ -57,7 +60,11 @@ else()
     endif()
 endif()
 
-target_include_directories(LANChat PRIVATE ${Boost_INCLUDE_DIRS}) # For boost
+target_include_directories(LANChat PRIVATE ${Boost_INCLUDE_DIRS}
+                                            QtWindow
+                                            Client
+                                            Server)
+
 target_link_libraries(LANChat PRIVATE Qt${QT_VERSION_MAJOR}::Widgets boost::boost)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

@@ -1,3 +1,3 @@
 #include "client.h"
 
-client::client() {}
+Client::Client() {}
