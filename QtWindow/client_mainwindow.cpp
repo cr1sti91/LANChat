@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "client_mainwindow.h"
 #include <QDebug>
 
 void MainWindow::addMenu()
@@ -42,11 +42,12 @@ void MainWindow::connect_connectButton()
         remoteIP = ipLineEdit->text();
 
         // Making connection
+
     });
 }
 
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), client(boost::make_shared<Client>())
 {
     this->addMenu();
     this->addLabel();

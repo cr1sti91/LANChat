@@ -1,5 +1,5 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef CLIENT_MAINWINDOW_H
+#define CLIENT_MAINWINDOW_H
 
 #include <QMainWindow>
 #include <QApplication>
@@ -7,6 +7,10 @@
 #include <QPushButton>
 #include <QMenuBar>
 #include <QLabel>
+
+#include "client.h"
+
+#include <boost/shared_ptr.hpp>
 
 class MainWindow : public QMainWindow
 {
@@ -20,6 +24,8 @@ private: // Atributes
     QPushButton* connectButton;
 
     QString remoteIP;
+
+    boost::shared_ptr<Client> client;
 
 private: // Methods
     void addMenu();
@@ -35,4 +41,4 @@ public:
 
     QSize sizeHint() const;
 };
-#endif // MAINWINDOW_H
+#endif // CLIENT_MAINWINDOW_H

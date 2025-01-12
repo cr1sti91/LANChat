@@ -1,7 +1,6 @@
 #include "server.h"
 
-
-Server::Server() : received_buffer_index(0), end(false)
+Server::Server() : received_buffer_index(0), end(false), endpoint(nullptr)
 {
     io_cntxt   = boost::make_shared<boost::asio::io_context>();
     work       = boost::make_shared<boost::asio::io_service::work>(*io_cntxt);
@@ -10,46 +9,56 @@ Server::Server() : received_buffer_index(0), end(false)
 
     received_buffer.resize(4096);
 
-    for(short i = 0; i < thread_nr; ++i)
+    for(short i = 0; i < THREAD_NR; ++i)
         threads.create_thread(boost::bind(&Server::workerThread, this, i));
 }
 
-void Server::listen(const char *address, const std::size_t port, const QLineEdit * const lineEdit) noexcept
+void Server::listen() noexcept
 {
     try
     {
-        // DNS resolution if we have a remote host name.
-        boost::asio::ip::tcp::resolver resolver(*io_cntxt);
-        boost::asio::ip::tcp::resolver::query query(address, std::to_string(port));
-        boost::asio::ip::tcp::endpoint endpoint = *(resolver.resolve(query));
+        // Finding the LAN IP address
+        QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
 
-        acceptor->open(endpoint.protocol());
+        for (const QNetworkInterface &iface : interfaces)
+        {
+            QList<QNetworkAddressEntry> entries = iface.addressEntries();
+            for (const QNetworkAddressEntry &entry : entries)
+            {
+                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
+                {
+                    auto boost_ip = boost::asio::ip::make_address(entry.ip().toString().toStdString());
+                    endpoint = boost::make_shared<boost::asio::ip::tcp::endpoint>(boost_ip, SERVER_PORT);
+                }
+            }
+        }
+
+        // Making the tcp connection
+        acceptor->open(endpoint->protocol());
         acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        acceptor->bind(endpoint);
+        acceptor->bind(*endpoint);
         acceptor->listen(boost::asio::socket_base::max_connections);
-        acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1, lineEdit));
+        acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1));
 
-        emit listening_on();
+        emit listening_on(endpoint);
     }
     catch (const std::exception& e)
     {
         emit exception_listening_on();
     }
-
-    finish();
 }
 
-void Server::onAccept(const boost::system::error_code &ec, const QLineEdit * const lineEdit) noexcept
+void Server::onAccept(const boost::system::error_code &ec) noexcept
 {
     if(ec)
     {
-        emit connection_failed();
+        emit connectionStatus("  Connection failed!");
     }
     else
     {
-        emit connected();
+        emit connectionStatus("  Connected!");
 
-        send(lineEdit);
+        send();
         recv();
     }
 }
@@ -76,7 +85,7 @@ void Server::workerThread(const std::size_t index)
     }
 }
 
-void Server::send(const QLineEdit * const lineEdit) noexcept
+void Server::send() noexcept
 {
     const char* message = "Connected!\n";
     size_t length = 11;
@@ -85,10 +94,10 @@ void Server::send(const QLineEdit * const lineEdit) noexcept
                std::back_inserter(send_buffer));
 
     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-                             boost::bind(&Server::onSend, this, _1, _2, lineEdit));
+                             boost::bind(&Server::onSend, this, _1, _2));
 }
 
-void Server::onSend(const boost::system::error_code &ec, std::size_t n_bytes, const QLineEdit* lineEdit) noexcept
+void Server::onSend(const boost::system::error_code &ec, std::size_t n_bytes) noexcept
 {
     if(ec)
     {
@@ -96,27 +105,28 @@ void Server::onSend(const boost::system::error_code &ec, std::size_t n_bytes, co
         return;
     }
 
-    send_buffer.clear();
+    // send_buffer.clear();
 
 
+    // //////////////////////////////////////////////////////////////////////////////
+    // std::string to_send;
 
+    // if(to_send == "exit")
+    // {
+    //     end = true;
+    //     return;
+    // }
 
-    if(to_send == "exit")
-    {
-        end = true;
-        return;
-    }
+    // to_send += '\n';
+    // to_send = "Server: " + to_send;
 
-    to_send += '\n';
-    to_send = "Server: " + to_send;
+    // std::copy(to_send.begin(), to_send.end(), std::back_inserter(send_buffer));
 
-    std::copy(to_send.begin(), to_send.end(), std::back_inserter(send_buffer));
-
-    if(!send_buffer.empty())
-    {
-        boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-                                 boost::bind(&Server::onSend, this, _1, _2));
-    }
+    // if(!send_buffer.empty())
+    // {
+    //     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+    //                              boost::bind(&Server::onSend, this, _1, _2));
+    // }
 }
 
 void Server::recv() noexcept
@@ -131,12 +141,22 @@ void Server::onRecv() noexcept
 
 void Server::finish() noexcept
 {
-    work.reset();
-    threads.join_all();
+    try {
+        if(sckt->is_open())
+        {
+            sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+            sckt->close();
+        }
 
-    sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-    sckt->close();
-    acceptor->close();
+        if(acceptor->is_open())
+            acceptor->close();
 
-    io_cntxt->stop();
+        work.reset();
+        io_cntxt->stop();
+        threads.join_all();
+    }
+    catch (const std::exception& e)
+    {
+        qDebug() << "exception in finish() : " << e.what();
+    }
 }
