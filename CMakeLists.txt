@@ -97,11 +97,11 @@ function(configure_target target_name sources include_directories)
 endfunction()
 
 configure_target(ServerChat "${SERVER_SOURCES}" "${SERVER_DIRECTORIES}")
-configure_target(ClientChat "${CLIENT_SOURCES}" "${CLIENT_DIRECTORIES}")
+# configure_target(ClientChat "${CLIENT_SOURCES}" "${CLIENT_DIRECTORIES}")
 
 # Installation
 include(GNUInstallDirs)
-install(TARGETS ServerChat ClientChat
+install(TARGETS ServerChat #[[ClientChat]]
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -109,7 +109,7 @@ install(TARGETS ServerChat ClientChat
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(ServerChat)
-    qt_finalize_executable(ClientChat)
+    # qt_finalize_executable(ClientChat)
 endif()
 
 

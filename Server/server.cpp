@@ -17,34 +17,63 @@ void Server::listen() noexcept
 {
     try
     {
-        // Finding the LAN IP address
+        // Finding the LAN IP address on Linux/Windows (only wi-fi or ethernet)
         QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
 
         for (const QNetworkInterface &iface : interfaces)
         {
-            QList<QNetworkAddressEntry> entries = iface.addressEntries();
-            for (const QNetworkAddressEntry &entry : entries)
+            const QString ifaceName = iface.name();
+            boost::asio::ip::address private_IP_address;
+            bool wifi_or_ethernet = false;
+
+
+#ifdef __linux__
+            wifi_or_ethernet = ifaceName.startsWith("wl") ||
+                               ifaceName.startsWith("en") ||
+                               ifaceName.startsWith("eth");
+#elif _WIN32
+            wifi_or_ethernet = ifaceName.contains("Wi-Fi", Qt::CaseInsensitive)) ||
+                               ifaceName.startsWith("Ethernet", Qt::CaseInsensitive);
+#endif
+            if (wifi_or_ethernet)
             {
-                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
+                QList<QNetworkAddressEntry> entries = iface.addressEntries();
+                for (const QNetworkAddressEntry &entry : entries)
                 {
-                    auto boost_ip = boost::asio::ip::make_address(entry.ip().toString().toStdString());
-                    endpoint = boost::make_shared<boost::asio::ip::tcp::endpoint>(boost_ip, SERVER_PORT);
+                    if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
+                    {
+                        private_IP_address = boost::asio::ip::make_address(entry.ip().toString().toStdString());
+                        endpoint = boost::make_shared<boost::asio::ip::tcp::endpoint>(private_IP_address,
+                                                                                      SERVER_PORT);
+                        break;
+                    }
                 }
+
+                if(endpoint)
+                    break;
             }
         }
 
-        // Making the tcp connection
-        acceptor->open(endpoint->protocol());
-        acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        acceptor->bind(*endpoint);
-        acceptor->listen(boost::asio::socket_base::max_connections);
-        acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1));
+        if(endpoint)
+        {
+            // Making the tcp connection
+            acceptor->open(endpoint->protocol());
+            acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+            acceptor->bind(*endpoint);
+            acceptor->listen(boost::asio::socket_base::max_connections);
+            acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1));
 
-        emit listening_on(endpoint);
+            emit listening_on(endpoint);
+        }
+        else
+        {
+            throw std::runtime_error("No valid endpoint found after scanning interfaces!");
+        }
+
     }
     catch (const std::exception& e)
     {
-        emit exception_listening_on();
+        emit connectionStatus(e.what());
     }
 }
 
@@ -58,7 +87,6 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
     {
         emit connectionStatus("  Connected!");
 
-        send();
         recv();
     }
 }
@@ -85,14 +113,8 @@ void Server::workerThread(const std::size_t index)
     }
 }
 
-void Server::send() noexcept
+void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
-    const char* message = "Connected!\n";
-    size_t length = 11;
-    std::vector<boost::uint8_t> output;
-    std::copy((const boost::uint8_t*)message, (const boost::uint8_t*)message + length,
-               std::back_inserter(send_buffer));
-
     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
                              boost::bind(&Server::onSend, this, _1, _2));
 }

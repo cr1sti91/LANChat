@@ -40,7 +40,6 @@ private: // Methods
     void onAccept(const boost::system::error_code& ec) noexcept;
     void workerThread(const std::size_t index);
 
-    void send() noexcept;
     void onSend(const boost::system::error_code& ec, std::size_t n_bytes) noexcept;
 
     void recv() noexcept;
@@ -49,9 +48,8 @@ private: // Methods
 
 signals:
     void listening_on(boost::shared_ptr<boost::asio::ip::tcp::endpoint>);
-    void exception_listening_on();
     void exception_workerThread();
-    void connectionStatus(const QString&);
+    void connectionStatus(const char*);
     void error_workerThread();
     void onSend_error();
 
@@ -60,6 +58,9 @@ public:
     ~Server() = default;
 
     void listen() noexcept;
+
+    void send(const std::vector<boost::uint8_t>& send_buffer) noexcept;
+
     void finish() noexcept; // Server shutdown
 };
 
