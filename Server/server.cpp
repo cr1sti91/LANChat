@@ -1,11 +1,14 @@
 #include "server.h"
 
-Server::Server() : received_buffer_index(0), end(false), endpoint(nullptr)
+Server::Server(QObject* parent) : QObject(parent),
+                                  received_buffer_index(0),
+                                  endpoint(nullptr),
+                                  serverStatus(std::nullopt)
 {
-    io_cntxt   = boost::make_shared<boost::asio::io_context>();
-    work       = boost::make_shared<boost::asio::io_service::work>(*io_cntxt);
-    sckt       = boost::make_shared<boost::asio::ip::tcp::socket>(*io_cntxt);
-    acceptor   = boost::make_shared<boost::asio::ip::tcp::acceptor>(*io_cntxt);
+    io_cntxt   = std::make_unique<boost::asio::io_context>();
+    work       = std::make_unique<boost::asio::io_service::work>(*io_cntxt);
+    sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*io_cntxt);
+    acceptor   = std::make_unique<boost::asio::ip::tcp::acceptor>(*io_cntxt);
 
     received_buffer.resize(4096);
 
@@ -13,8 +16,19 @@ Server::Server() : received_buffer_index(0), end(false), endpoint(nullptr)
         threads.create_thread(boost::bind(&Server::workerThread, this, i));
 }
 
+Server::~Server()
+{
+}
+
+const std::optional<std::atomic<bool>> &Server::is_working() const
+{
+    return this->serverStatus;
+}
+
 void Server::listen() noexcept
 {
+    this->serverStatus = true;
+
     try
     {
         // Finding the LAN IP address on Linux/Windows (only wi-fi or ethernet)
@@ -43,7 +57,7 @@ void Server::listen() noexcept
                     if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
                     {
                         private_IP_address = boost::asio::ip::make_address(entry.ip().toString().toStdString());
-                        endpoint = boost::make_shared<boost::asio::ip::tcp::endpoint>(private_IP_address,
+                        endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(private_IP_address,
                                                                                       SERVER_PORT);
                         break;
                     }
@@ -56,10 +70,21 @@ void Server::listen() noexcept
 
         if(endpoint)
         {
+            boost::system::error_code ec;
+
             // Making the tcp connection
             acceptor->open(endpoint->protocol());
             acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-            acceptor->bind(*endpoint);
+            acceptor->bind(*endpoint, ec);
+
+            if(ec)
+            {
+                emit connectionStatus("Invalid endpoint (probably the port is occupied by another instance)!");
+                endpoint.reset();
+                endpoint = nullptr;
+                return;
+            }
+
             acceptor->listen(boost::asio::socket_base::max_connections);
             acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1));
 
@@ -69,7 +94,6 @@ void Server::listen() noexcept
         {
             throw std::runtime_error("No valid endpoint found after scanning interfaces!");
         }
-
     }
     catch (const std::exception& e)
     {
@@ -91,9 +115,10 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
     }
 }
 
-void Server::workerThread(const std::size_t index)
+void Server::workerThread(const std::size_t index) noexcept
 {
     while(true)
+
     {
         try
         {
@@ -102,13 +127,13 @@ void Server::workerThread(const std::size_t index)
 
             if(ec)
             {
-                emit error_workerThread();
+                emit connectionStatus("Error workerThread");
             }
             break;
         }
         catch(const std::exception& e)
         {
-            emit exception_workerThread();
+            emit connectionStatus("Exception workerThread");
         }
     }
 }
@@ -116,40 +141,39 @@ void Server::workerThread(const std::size_t index)
 void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-                             boost::bind(&Server::onSend, this, _1, _2));
+                             [this](const boost::system::error_code& ec, const std::size_t bytes){
+        if(ec)
+        {
+            emit connectionStatus("An error occurred while transmitting data.");
+        }
+    });
 }
 
-void Server::onSend(const boost::system::error_code &ec, std::size_t n_bytes) noexcept
+void Server::closeConnection() noexcept
 {
-    if(ec)
+    boost::system::error_code ec;
+
+    try {
+        if(sckt->is_open())
+        {
+            sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+            sckt->close(ec);
+
+            if(ec) emit connectionStatus("Error on socket shutdown/close!");
+        }
+
+        if(acceptor->is_open())
+            acceptor->close();
+
+    }
+    catch (const std::exception& e)
     {
-        emit onSend_error();
-        return;
+        emit connectionStatus(e.what());
     }
 
-    // send_buffer.clear();
-
-
-    // //////////////////////////////////////////////////////////////////////////////
-    // std::string to_send;
-
-    // if(to_send == "exit")
-    // {
-    //     end = true;
-    //     return;
-    // }
-
-    // to_send += '\n';
-    // to_send = "Server: " + to_send;
-
-    // std::copy(to_send.begin(), to_send.end(), std::back_inserter(send_buffer));
-
-    // if(!send_buffer.empty())
-    // {
-    //     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-    //                              boost::bind(&Server::onSend, this, _1, _2));
-    // }
+    this->serverStatus = false;
 }
+
 
 void Server::recv() noexcept
 {
@@ -163,22 +187,11 @@ void Server::onRecv() noexcept
 
 void Server::finish() noexcept
 {
-    try {
-        if(sckt->is_open())
-        {
-            sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-            sckt->close();
-        }
+    this->closeConnection();
 
-        if(acceptor->is_open())
-            acceptor->close();
+    work.reset();
+    io_cntxt->stop();
+    threads.join_all();
 
-        work.reset();
-        io_cntxt->stop();
-        threads.join_all();
-    }
-    catch (const std::exception& e)
-    {
-        qDebug() << "exception in finish() : " << e.what();
-    }
+    this->serverStatus = false;
 }

@@ -19,7 +19,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    static inline const char* windowName = "Server LANChat";
+    static inline const char* WINDOWNAME = "Server LANChat";
 
 private: // Fields
     QPalette*       windowPalette;
@@ -42,11 +42,11 @@ private: // Fields
 
     QPushButton*    sendButton;
 
-    QString                   serverIP;
-    boost::shared_ptr<Server> server;
-    boost::thread*            serverThread;
+    QString                        serverIP;
+    Server*                        server;
+    std::unique_ptr<boost::thread> serverThread;
 
-    std::vector<boost::uint8_t> send_buffer;
+    std::vector<boost::uint8_t>    send_buffer;
 
 
 private: // Methods
@@ -56,16 +56,12 @@ private: // Methods
     void addStatusLable();
     void addUserInput();
     void addMessagesLabel();
+    void startListening();
 
 
 private slots:
-    void setStatusLabel(boost::shared_ptr<boost::asio::ip::tcp::endpoint>);
-    void connectionStatus(const char *);
-
-
-signals:
-    void serverListening();
-
+    void setStatusLabel(const std::shared_ptr<boost::asio::ip::tcp::endpoint>);
+    void connectionStatus(const char*);
 
 public:
     MainWindow(QWidget *parent = nullptr);

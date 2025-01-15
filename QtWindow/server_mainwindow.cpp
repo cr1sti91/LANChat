@@ -1,5 +1,4 @@
 #include "server_mainwindow.h"
-#include <QDebug>
 
 //   Fields are called through the this pointer for explicitness.
 
@@ -15,12 +14,12 @@ void MainWindow::setPalettes()
     this->buttonPalette->setColor(QPalette::ButtonText, Qt::black);
 
     this->setPalette(*windowPalette);
-    this->setWindowTitle(MainWindow::windowName);
+    this->setWindowTitle(MainWindow::WINDOWNAME);
 }
 
 void MainWindow::addLayouts()
 {
-    this->centralWidget = new QWidget(this);
+    this->centralWidget = new QWidget();
     setCentralWidget(this->centralWidget);
 
     this->verticalLayout =  new QVBoxLayout(this->centralWidget);
@@ -36,16 +35,7 @@ void MainWindow::addMenu()
         QApplication::quit();
     });
 
-    connect(this->listenAction, &QAction::triggered, this, [this](){
-
-        this->serverThread = new boost::thread(&Server::listen, this->server);
-
-        this->addStatusLable();
-
-        connect(this->server.get(), &Server::connectionStatus, this, &MainWindow::connectionStatus);
-
-        emit serverListening();
-    });
+    connect(this->listenAction, &QAction::triggered, this, &MainWindow::startListening);
 
     this->fileMenu = menuBar()->addMenu("File");
     this->listenMenu = menuBar()->addMenu("Listen");
@@ -56,25 +46,25 @@ void MainWindow::addMenu()
 
 void MainWindow::addStatusLable()
 {
-    this->connectionStatusLabel = new QLabel(this);
+    this->connectionStatusLabel = new QLabel();
     this->connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     this->verticalLayout->addWidget(this->connectionStatusLabel, 1, Qt::AlignTop);
     this->connectionStatusLabel->show();
 
-    connect(this->server.get(), &Server::listening_on, this, &MainWindow::setStatusLabel);
+    connect(this->server, &Server::listening_on, this, &MainWindow::setStatusLabel);
 }
 
 void MainWindow::addUserInput()
 {
-    this->userInput = new QLineEdit(this);
+    this->userInput = new QLineEdit();
     this->userInput->setPlaceholderText("Type...");
 
     this->orizontalLayout->addWidget(this->userInput);
     this->userInput->show();
 
-    this->sendButton = new QPushButton(this);
+    this->sendButton = new QPushButton();
     this->sendButton->setText("Send");
 
     // this->sendButton->setPalette(*this->buttonPalette);
@@ -104,7 +94,7 @@ void MainWindow::addUserInput()
 
 void MainWindow::addMessagesLabel()
 {
-    this->messagesLabel = new QLabel(this);
+    this->messagesLabel = new QLabel();
     this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
@@ -112,15 +102,46 @@ void MainWindow::addMessagesLabel()
     this->messagesLabel->show();
 }
 
+void MainWindow::startListening()
+{
+    if(this->server->is_working().has_value())
+    {
+        if(this->server->is_working())
+        {
+            delete this->centralWidget;
+            this->centralWidget = nullptr;
+
+            if(this->serverThread != nullptr)
+            {
+                this->serverThread.reset(nullptr);
+            }
+
+            this->server->closeConnection();
+        }
+    }
+    else
+    {
+        connect(this->server, &Server::connectionStatus, this, &MainWindow::connectionStatus);
+    }
+
+    this->serverThread = std::make_unique<boost::thread>(&Server::listen, this->server);
+    this->addLayouts();
+    this->addStatusLable();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE SLOTS
 ///
-void MainWindow::setStatusLabel(boost::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint)
+void MainWindow::setStatusLabel(const std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint)
 {
     QString ipAndPort = "  Listening on IP address " + QString::fromStdString(endpoint->address().to_string())
                         + " and port "+ QString::number(endpoint->port()) + "...";
 
+
     this->connectionStatusLabel->setText(ipAndPort);
+
+    // Disconnection from signal
+    disconnect(this->server, &Server::listening_on, this, &MainWindow::setStatusLabel);
 }
 
 void MainWindow::connectionStatus(const char* status)
@@ -128,14 +149,18 @@ void MainWindow::connectionStatus(const char* status)
     if(this->serverThread != nullptr)
     {
         // serverThread is deleted because the attempt to connect has finished.
-        delete this->serverThread;
+        this->serverThread.reset(nullptr);
         this->serverThread = nullptr;
+    }
 
-        this->connectionStatusLabel->setText(status);
-        QPalette labelPalette;
-        labelPalette.setColor(QPalette::WindowText, (!std::strcmp(status, "  Connected!"))? Qt::green : Qt::red);
-        this->connectionStatusLabel->setPalette(labelPalette);
+    QPalette labelPalette;
+    this->connectionStatusLabel->setText(status);
 
+    labelPalette.setColor(QPalette::WindowText, (!std::strcmp(status, "  Connected!"))? Qt::green : Qt::red);
+    this->connectionStatusLabel->setPalette(labelPalette);
+
+    if(!std::strcmp(status, "  Connected!"))
+    {
         this->addMessagesLabel();
         this->addUserInput();
     }
@@ -145,17 +170,19 @@ void MainWindow::connectionStatus(const char* status)
 /// PUBLIC METHODS
 ///
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
-                                          server(boost::make_shared<Server>()),
+                                          server(new Server(this)),
                                           serverThread(nullptr)
 {
     // this->setPalettes();
-    this->addLayouts();
     this->addMenu();
 }
 
 MainWindow::~MainWindow()
 {
     this->server->finish();
+
+    if(this->centralWidget)
+        delete centralWidget;
 }
 
 QSize MainWindow::sizeHint() const
