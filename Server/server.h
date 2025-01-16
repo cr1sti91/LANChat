@@ -3,15 +3,23 @@
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
-#include <boost/atomic.hpp>
 #include <boost/bind.hpp>
 
+#include <QScrollArea>
+#include <QMainWindow>
+#include <QPalette>
+#include <QApplication>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QMenuBar>
 #include <QObject>
+#include <QLabel>
 #include <QString>
 #include <QtNetwork/QNetworkInterface>
-
 #include <QDebug>
 
+#include <cstring>
 #include <vector>
 #include <memory>
 #include <optional>
@@ -44,17 +52,17 @@ private: // Fields
 
 private: // Methods
     void onAccept(const boost::system::error_code& ec)                    noexcept;
-    void workerThread(const std::size_t index)                            noexcept;
+    void workerThread()                                                   noexcept;
 
     void onSend(const boost::system::error_code& ec, std::size_t n_bytes) noexcept;
 
-    void recv()                                                           noexcept;
-    void onRecv()                                                         noexcept;
+    void onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept;
 
 
 signals:
     void listening_on(const std::shared_ptr<boost::asio::ip::tcp::endpoint>&);
     void connectionStatus(const char*);
+
 
 public:
     Server(QObject* parent = nullptr);
@@ -66,9 +74,12 @@ public:
 
     void send(const std::vector<boost::uint8_t>& send_buffer) noexcept;
 
+    void recv(QLabel* messageLabel)                           noexcept;
+
     void closeConnection()                                    noexcept;
 
     void finish()                                             noexcept; // Server shutdown
+    inline static size_t num = 0;
 };
 
 #endif // SERVER_H

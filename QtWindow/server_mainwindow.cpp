@@ -74,22 +74,7 @@ void MainWindow::addUserInput()
 
     this->verticalLayout->addLayout(this->orizontalLayout);
 
-    connect(this->sendButton, &QPushButton::clicked, this, [this](){
-
-        std::string input = this->userInput->text().toStdString();
-
-        if(input.empty())
-            return;
-
-        input = "SERVER: " + input + '\n';
-
-        std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
-
-        this->userInput->clear();
-
-        this->server->send(this->send_buffer);
-        this->send_buffer.clear();
-    });
+    connect(this->sendButton, &QPushButton::clicked, this, &MainWindow::sendingMessages);
 }
 
 void MainWindow::addMessagesLabel()
@@ -97,9 +82,16 @@ void MainWindow::addMessagesLabel()
     this->messagesLabel = new QLabel();
     this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->messagesLabel->setAlignment(Qt::AlignBottom);
 
-    this->verticalLayout->addWidget(this->messagesLabel, Qt::AlignCenter);
-    this->messagesLabel->show();
+    this->messagesLabelScroll = new QScrollArea(this->centralWidget);
+    this->messagesLabelScroll->setWidget(this->messagesLabel);
+    this->messagesLabelScroll->setWidgetResizable(true);
+
+    this->messagesLabelLayout = new QHBoxLayout();
+    this->messagesLabelLayout->addWidget(this->messagesLabelScroll);
+
+    this->verticalLayout->addLayout(this->messagesLabelLayout, Qt::AlignCenter);
 }
 
 void MainWindow::startListening()
@@ -127,6 +119,28 @@ void MainWindow::startListening()
     this->serverThread = std::make_unique<boost::thread>(&Server::listen, this->server);
     this->addLayouts();
     this->addStatusLable();
+}
+
+void MainWindow::sendingMessages()
+{
+    std::string input = this->userInput->text().toStdString();
+
+    if(input.empty())
+        return;
+
+    input = "SERVER: " + input + '\n';
+
+    // Adding text to the messageLabel
+    this->messageLabelMutex.lock();
+    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
+    this->messageLabelMutex.unlock();
+
+    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
+
+    this->userInput->clear();
+
+    this->server->send(this->send_buffer);
+    this->send_buffer.clear();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,6 +177,8 @@ void MainWindow::connectionStatus(const char* status)
     {
         this->addMessagesLabel();
         this->addUserInput();
+
+        this->server->recv(this->messagesLabel);
     }
 }
 

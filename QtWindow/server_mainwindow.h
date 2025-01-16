@@ -1,18 +1,6 @@
 #ifndef CLIENT_MAINWINDOW_H
 #define CLIENT_MAINWINDOW_H
 
-#include <cstring>
-#include <vector>
-
-#include <QMainWindow>
-#include <QPalette>
-#include <QApplication>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QMenuBar>
-#include <QLabel>
-
 #include "server.h"
 
 class MainWindow : public QMainWindow
@@ -34,6 +22,9 @@ private: // Fields
     QLabel*         connectionStatusLabel;
     QLabel*         messagesLabel;
 
+    QScrollArea*    messagesLabelScroll;
+    QHBoxLayout*    messagesLabelLayout;
+
     QLineEdit*      userInput;
 
     QWidget*        centralWidget;
@@ -48,6 +39,8 @@ private: // Fields
 
     std::vector<boost::uint8_t>    send_buffer;
 
+    boost::mutex messageLabelMutex;
+
 
 private: // Methods
     void setPalettes();
@@ -57,6 +50,7 @@ private: // Methods
     void addUserInput();
     void addMessagesLabel();
     void startListening();
+    void sendingMessages();
 
 
 private slots:
@@ -66,7 +60,7 @@ private slots:
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
+    inline static size_t number = 0;
     QSize sizeHint() const;
 };
 #endif // CLIENT_MAINWINDOW_H

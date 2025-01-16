@@ -13,7 +13,30 @@ Server::Server(QObject* parent) : QObject(parent),
     received_buffer.resize(4096);
 
     for(short i = 0; i < THREAD_NR; ++i)
-        threads.create_thread(boost::bind(&Server::workerThread, this, i));
+        threads.create_thread(boost::bind(&Server::workerThread, this));
+}
+
+void Server::workerThread() noexcept
+{
+    while(true)
+
+    {
+        try
+        {
+            boost::system::error_code ec;
+            io_cntxt->run(ec);
+
+            if(ec)
+            {
+                emit connectionStatus("Error workerThread");
+            }
+            break;
+        }
+        catch(const std::exception& e)
+        {
+            emit connectionStatus("Exception workerThread");
+        }
+    }
 }
 
 Server::~Server()
@@ -110,44 +133,45 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
     else
     {
         emit connectionStatus("  Connected!");
-
-        recv();
     }
 }
 
-void Server::workerThread(const std::size_t index) noexcept
-{
-    while(true)
-
-    {
-        try
-        {
-            boost::system::error_code ec;
-            io_cntxt->run(ec);
-
-            if(ec)
-            {
-                emit connectionStatus("Error workerThread");
-            }
-            break;
-        }
-        catch(const std::exception& e)
-        {
-            emit connectionStatus("Exception workerThread");
-        }
-    }
-}
 
 void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
     boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
                              [this](const boost::system::error_code& ec, const std::size_t bytes){
-        if(ec)
-        {
-            emit connectionStatus("An error occurred while transmitting data.");
-        }
-    });
+                               if(ec)
+                                 {
+                                     emit connectionStatus("An error occurred while transmitting data.");
+                                 }
+                             });
 }
+
+
+void Server::recv(QLabel* messageLabel) noexcept
+{
+    sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
+                          boost::bind(&Server::onRecv, this, _1, _2, messageLabel));
+}
+
+void Server::onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept
+{
+    if(ec)
+    {
+        emit connectionStatus("Async_read_some error!");
+        return;
+    }
+
+    std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
+
+    this->mutex.lock();
+    messageLabel->setText(messageLabel->text() + "CLIENT: " + QString::fromStdString(received_message));
+    this->mutex.unlock();
+
+    recv(messageLabel);
+}
+
 
 void Server::closeConnection() noexcept
 {
@@ -174,16 +198,6 @@ void Server::closeConnection() noexcept
     this->serverStatus = false;
 }
 
-
-void Server::recv() noexcept
-{
-
-}
-
-void Server::onRecv() noexcept
-{
-
-}
 
 void Server::finish() noexcept
 {
