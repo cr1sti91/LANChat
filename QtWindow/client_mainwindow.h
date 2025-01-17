@@ -1,43 +1,75 @@
 #ifndef CLIENT_MAINWINDOW_H
 #define CLIENT_MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QApplication>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QMenuBar>
-#include <QLabel>
-
 #include "client.h"
-
-#include <boost/shared_ptr.hpp>
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+public:
+    static inline const char* WINDOWNAME = "Client LANChat";
 
-private: // Atributes
-    QAction*     quitAction;
-    QMenu*       fileMenu;
-    QLabel*      ipLabel;
-    QLineEdit*   ipLineEdit;
-    QPushButton* connectButton;
+private:
+    // Fields
+    QPalette*       windowPalette         {nullptr};
+    QPalette*       buttonPalette         {nullptr};
 
-    QString remoteIP;
+    QAction*        quitAction            {nullptr};
+    QAction*        connectAction         {nullptr};
 
-    boost::shared_ptr<Client> client;
+    QMenu*          fileMenu              {nullptr};
+    QMenu*          connectionMenu        {nullptr};
+
+    QLabel*         connectionStatusLabel {nullptr};
+    QLabel*         messagesLabel         {nullptr};
+
+    QScrollArea*    messagesLabelScroll   {nullptr};
+    QHBoxLayout*    messagesLabelLayout   {nullptr};
+
+    QLineEdit*      userInput             {nullptr};
+
+    QWidget*        centralWidget         {nullptr};
+    QVBoxLayout*    verticalLayout        {nullptr};
+    QHBoxLayout*    orizontalLayout       {nullptr};
+
+    QPushButton*    sendButton            {nullptr};
+
+    // Server - client atributes
+    QLineEdit*      ipAddressInput        {nullptr};
+    QLineEdit*      portInput             {nullptr};
+    QPushButton*    connectButton         {nullptr};
+
+    std::string                        serverPort;
+    std::string                        serverIPaddress;
+
+    Client*                            client{nullptr};
+    std::unique_ptr<boost::thread>     clientThread;
+
+    std::vector<boost::uint8_t>        send_buffer;
+
+    boost::mutex                       messageLabelMutex;
+
 
 private: // Methods
-    void addMenu();
-    void addLabel();
-    void addLineEdit();
-    void addButtons();
+    void addServerInfo();
 
-    void connect_connectButton();
+    void setPalettes();
+    void addLayouts();
+    void addMenu();
+    void addStatusLable(const char*);
+    void addUserInput();
+    void addMessagesLabel();
+    void startConnection();
+    void onConnection(const char*);
+
+private slots:
+    void getServerInfo();
+    void connectionStatus(const char*);
+    void sendingMessages();
 
 public:
     MainWindow(QWidget *parent = nullptr);
-    ~MainWindow() = default;
+    ~MainWindow();
 
     QSize sizeHint() const;
 };

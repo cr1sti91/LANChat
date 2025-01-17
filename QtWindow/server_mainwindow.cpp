@@ -37,7 +37,7 @@ void MainWindow::addMenu()
 
     connect(this->listenAction, &QAction::triggered, this, &MainWindow::startListening);
 
-    this->fileMenu = menuBar()->addMenu("File");
+    this->fileMenu = menuBar()->addMenu("App");
     this->listenMenu = menuBar()->addMenu("Listen");
 
     this->fileMenu->addAction(this->quitAction);
@@ -128,19 +128,18 @@ void MainWindow::sendingMessages()
     if(input.empty())
         return;
 
+    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
+    this->userInput->clear();
+
+    this->server->send(this->send_buffer);
+    this->send_buffer.clear();
+
     input = "SERVER: " + input + '\n';
 
     // Adding text to the messageLabel
     this->messageLabelMutex.lock();
     messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
     this->messageLabelMutex.unlock();
-
-    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
-
-    this->userInput->clear();
-
-    this->server->send(this->send_buffer);
-    this->send_buffer.clear();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

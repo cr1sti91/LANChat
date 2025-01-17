@@ -60,7 +60,7 @@ private slots:
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    inline static size_t number = 0;
+
     QSize sizeHint() const;
 };
 #endif // CLIENT_MAINWINDOW_H

@@ -54,8 +54,6 @@ private: // Methods
     void onAccept(const boost::system::error_code& ec)                    noexcept;
     void workerThread()                                                   noexcept;
 
-    void onSend(const boost::system::error_code& ec, std::size_t n_bytes) noexcept;
-
     void onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept;
 
 
@@ -79,7 +77,6 @@ public:
     void closeConnection()                                    noexcept;
 
     void finish()                                             noexcept; // Server shutdown
-    inline static size_t num = 0;
 };
 
 #endif // SERVER_H
