@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE METHODS
 ///
-void MainWindow::addServerInfo()
+void CMainWindow::addServerInfo()
 {
     this->addLayouts();
     this->addStatusLable("Waiting for IP address and port...");
@@ -13,6 +13,7 @@ void MainWindow::addServerInfo()
     this->ipAddressInput = new QLineEdit();
     this->portInput = new QLineEdit();
     this->connectButton = new QPushButton("Connect");
+    this->connectButton->setPalette(*this->buttonPalette);
 
     this->ipAddressInput->setFixedHeight(30);
     this->portInput->setFixedHeight(30);
@@ -28,12 +29,10 @@ void MainWindow::addServerInfo()
     this->verticalLayout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 }
 
-void MainWindow::getServerInfo()
+void CMainWindow::getServerInfo()
 {
     if(this->centralWidget)
     {
-        disconnect(this->connectButton, &QPushButton::clicked, nullptr, nullptr);
-
         delete this->centralWidget;
         this->centralWidget = nullptr;
 
@@ -55,31 +54,30 @@ void MainWindow::getServerInfo()
     else
     {
         this->addServerInfo();
-
-        connect(this->connectButton, &QPushButton::clicked, this, [this](){
-            this->serverIPaddress = this->ipAddressInput->text().toStdString();
-            this->serverPort = this->portInput->text().toStdString();
-
-            this->startConnection();
-        });
+        connect(this->client, &Client::connectionStatus, this, &CMainWindow::connectionStatus);
     }
 
-    connect(this->client, &Client::connectionStatus, this, &MainWindow::connectionStatus);
+    connect(this->connectButton, &QPushButton::clicked, this, [this](){
+        this->serverIPaddress = this->ipAddressInput->text().toStdString();
+        this->serverPort = this->portInput->text().toStdString();
+
+        this->startConnection();
+    });
 }
 
-void MainWindow::setPalettes()
+void CMainWindow::setPalettes()
 {
-    this->windowPalette = new QPalette(QPalette::Window, Qt::white);
+    this->windowPalette = new QPalette(QPalette::Window, Qt::gray);
     this->buttonPalette = new QPalette();
 
-    this->buttonPalette->setColor(QPalette::Button, Qt::white);
+    this->buttonPalette->setColor(QPalette::Button, Qt::blue);
     this->buttonPalette->setColor(QPalette::ButtonText, Qt::black);
 
     this->setPalette(*windowPalette);
-    this->setWindowTitle(MainWindow::WINDOWNAME);
+    this->setWindowTitle(CMainWindow::WINDOWNAME);
 }
 
-void MainWindow::addLayouts()
+void CMainWindow::addLayouts()
 {
     this->centralWidget = new QWidget();
     setCentralWidget(this->centralWidget);
@@ -88,25 +86,25 @@ void MainWindow::addLayouts()
     this->orizontalLayout = new QHBoxLayout();
 }
 
-void MainWindow::addMenu()
+void CMainWindow::addMenu()
 {
     this->quitAction = new QAction("Quit", this);
     this->connectAction = new QAction("Connect", this);
 
-    this->fileMenu = menuBar()->addMenu("App");
+    this->appMenu = menuBar()->addMenu("App");
     this->connectionMenu = menuBar()->addMenu("Connect");
 
-    this->fileMenu->addAction(this->quitAction);
+    this->appMenu->addAction(this->quitAction);
     this->connectionMenu->addAction(this->connectAction);
 
     connect(this->quitAction, &QAction::triggered, this, [this](){
         QApplication::quit();
     });
 
-    connect(this->connectAction, &QAction::triggered, this, &MainWindow::getServerInfo);
+    connect(this->connectAction, &QAction::triggered, this, &CMainWindow::getServerInfo);
 }
 
-void MainWindow::addStatusLable(const char* status)
+void CMainWindow::addStatusLable(const char* status)
 {
     this->connectionStatusLabel = new QLabel(status);
 
@@ -129,28 +127,28 @@ void MainWindow::addStatusLable(const char* status)
     this->connectionStatusLabel->show();
 }
 
-void MainWindow::addUserInput()
+void CMainWindow::addUserInput()
 {
-    this->userInput = new QLineEdit();
-    this->userInput->setPlaceholderText("Type...");
+    this->userInputLine = new QLineEdit();
+    this->userInputLine->setPlaceholderText("Type...");
 
-    this->orizontalLayout->addWidget(this->userInput);
-    this->userInput->show();
+    this->orizontalLayout->addWidget(this->userInputLine);
+    this->userInputLine->show();
 
     this->sendButton = new QPushButton();
     this->sendButton->setText("Send");
 
-    // this->sendButton->setPalette(*this->buttonPalette);
+    this->sendButton->setPalette(*this->buttonPalette);
 
     this->orizontalLayout->addWidget(this->sendButton);
     this->sendButton->show();
 
     this->verticalLayout->addLayout(this->orizontalLayout);
 
-    connect(this->sendButton, &QPushButton::clicked, this, &MainWindow::sendingMessages);
+    connect(this->sendButton, &QPushButton::clicked, this, &CMainWindow::sendingMessages);
 }
 
-void MainWindow::addMessagesLabel()
+void CMainWindow::addMessagesLabel()
 {
     this->messagesLabel = new QLabel();
     this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
@@ -167,8 +165,10 @@ void MainWindow::addMessagesLabel()
     this->verticalLayout->addLayout(this->messagesLabelLayout, Qt::AlignCenter);
 }
 
-void MainWindow::startConnection()
+void CMainWindow::startConnection()
 {
+    // If the client is connected, to initiate a new connection, it is
+    // necessary to close the previous one.
     if(this->client->is_working().has_value())
     {
         if(this->client->is_working())
@@ -191,7 +191,7 @@ void MainWindow::startConnection()
                                         );
 }
 
-void MainWindow::onConnection(const char* status)
+void CMainWindow::onConnection(const char* status)
 {
     delete this->centralWidget; // Upon this destruction all child widgets are destroyed
     this->centralWidget = nullptr;
@@ -204,12 +204,19 @@ void MainWindow::onConnection(const char* status)
     this->client->recv(this->messagesLabel);
 }
 
-void MainWindow::sendingMessages()
+void CMainWindow::sendingMessages()
 {
-    std::string input = this->userInput->text().toStdString();
+    std::string input = this->userInputLine->text().toStdString();
 
     if(input.empty())
         return;
+
+    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
+
+    this->userInputLine->clear();
+
+    this->client->send(this->send_buffer);
+    this->send_buffer.clear();
 
     input = "CLIENT: " + input + '\n';
 
@@ -217,19 +224,12 @@ void MainWindow::sendingMessages()
     this->messageLabelMutex.lock();
     messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
     this->messageLabelMutex.unlock();
-
-    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
-
-    this->userInput->clear();
-
-    this->client->send(this->send_buffer);
-    this->send_buffer.clear();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE SLOTS
 ///
-void MainWindow::connectionStatus(const char* status)
+void CMainWindow::connectionStatus(const char* status)
 {
     if(this->clientThread != nullptr)
     {
@@ -252,22 +252,20 @@ void MainWindow::connectionStatus(const char* status)
                               (!std::strcmp(status, "Waiting for IP address and port...")? Qt::white : Qt::red));
         this->connectionStatusLabel->setPalette(labelPalette);
     }
-
-    qDebug() << status;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
-                                          client(new Client(this)),
-                                          clientThread(nullptr)
+CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent),
+                                            client(new Client(this)),
+                                            clientThread(nullptr)
 {
-    // this->setPalettes();
+    this->setPalettes();
     this->addMenu();
 }
 
-MainWindow::~MainWindow()
+CMainWindow::~CMainWindow()
 {
     this->client->finish();
 
@@ -275,7 +273,7 @@ MainWindow::~MainWindow()
         delete centralWidget;
 }
 
-QSize MainWindow::sizeHint() const
+QSize CMainWindow::sizeHint() const
 {
     return QSize(800, 500);
 }

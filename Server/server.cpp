@@ -1,10 +1,10 @@
 #include "server.h"
 
 Server::Server(QObject* parent) : QObject(parent),
-                                  received_buffer_index(0),
                                   endpoint(nullptr),
                                   serverStatus(std::nullopt)
 {
+    // Initialization
     io_cntxt   = std::make_unique<boost::asio::io_context>();
     work       = std::make_unique<boost::asio::io_service::work>(*io_cntxt);
     sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*io_cntxt);
@@ -12,6 +12,7 @@ Server::Server(QObject* parent) : QObject(parent),
 
     received_buffer.resize(4096);
 
+    // Creating threads for receiving and sending data
     for(short i = 0; i < THREAD_NR; ++i)
         threads.create_thread(boost::bind(&Server::workerThread, this));
 }
@@ -19,7 +20,6 @@ Server::Server(QObject* parent) : QObject(parent),
 void Server::workerThread() noexcept
 {
     while(true)
-
     {
         try
         {
@@ -63,7 +63,7 @@ void Server::listen() noexcept
             boost::asio::ip::address private_IP_address;
             bool wifi_or_ethernet = false;
 
-
+        // Checking interfaces depending on the operating system.
 #ifdef __linux__
             wifi_or_ethernet = ifaceName.startsWith("wl") ||
                                ifaceName.startsWith("en") ||
@@ -71,12 +71,17 @@ void Server::listen() noexcept
 #elif _WIN32
             wifi_or_ethernet = ifaceName.contains("Wi-Fi", Qt::CaseInsensitive)) ||
                                ifaceName.startsWith("Ethernet", Qt::CaseInsensitive);
+#else
+            emit connectionStatus("Unknown OS!");
+            return;
 #endif
             if (wifi_or_ethernet)
             {
                 QList<QNetworkAddressEntry> entries = iface.addressEntries();
                 for (const QNetworkAddressEntry &entry : entries)
                 {
+                    // If the address is not local to the device only, but is part of the LAN,
+                    // it can be used by the server for listening.
                     if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
                     {
                         private_IP_address = boost::asio::ip::make_address(entry.ip().toString().toStdString());
@@ -166,7 +171,7 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes, QLa
     std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
 
     this->mutex.lock();
-    messageLabel->setText(messageLabel->text() + "CLIENT: " + QString::fromStdString(received_message));
+    messageLabel->setText(messageLabel->text() + "CLIENT: " + QString::fromStdString(received_message) + '\n');
     this->mutex.unlock();
 
     recv(messageLabel);

@@ -23,6 +23,12 @@ if(NOT Boost_FOUND)
 endif()
 #####################################################################
 
+# Adding documentation with doxygen
+#####################################################################
+add_subdirectory(docs)
+#####################################################################
+
+
 # Source files
 # The source files include header files so we can view them in QT Creator.
 file(GLOB serverFiles Server/*.cpp Server/*.h)
@@ -96,19 +102,21 @@ function(configure_target target_name sources include_directories)
     )
 endfunction()
 
-# configure_target(ServerChat "${SERVER_SOURCES}" "${SERVER_DIRECTORIES}")
+configure_target(ServerChat "${SERVER_SOURCES}" "${SERVER_DIRECTORIES}")
 configure_target(ClientChat "${CLIENT_SOURCES}" "${CLIENT_DIRECTORIES}")
+
+add_dependencies(ServerChat documentation)
 
 # Installation
 include(GNUInstallDirs)
-install(TARGETS #[[ServerChat]] ClientChat
+install(TARGETS ServerChat ClientChat
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    # qt_finalize_executable(ServerChat)
+    qt_finalize_executable(ServerChat)
     qt_finalize_executable(ClientChat)
 endif()
 

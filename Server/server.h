@@ -25,58 +25,106 @@
 #include <optional>
 
 
+/**
+ * @class Server
+ * @brief A TCP server implementation using Boost.Asio and Qt for asynchronous operations and GUI integration.
+ */
 class Server : public QObject
 {
     Q_OBJECT // For the use of signals.
 
 private: // Fields
-    static constexpr unsigned short THREAD_NR   = 2;
-    static constexpr unsigned short SERVER_PORT = 55555;
+    static constexpr unsigned short THREAD_NR   = 2;            ///< Number of worker threads for Boost.Asio.
+    static constexpr unsigned short SERVER_PORT = 55555;        ///< Default port number for the server.
 
-    std::unique_ptr<boost::asio::io_context>        io_cntxt;
-    std::unique_ptr<boost::asio::io_context::work>  work;
-    std::unique_ptr<boost::asio::ip::tcp::socket>   sckt;
-    std::unique_ptr<boost::asio::ip::tcp::acceptor> acceptor;
+    std::unique_ptr<boost::asio::io_context>        io_cntxt;   ///< Boost.Asio IO context.
+    std::unique_ptr<boost::asio::io_context::work>  work;       ///< Keeps the io_context running.
+    std::unique_ptr<boost::asio::ip::tcp::socket>   sckt;       ///< TCP socket for client connections.
+    std::unique_ptr<boost::asio::ip::tcp::acceptor> acceptor;   ///< TCP acceptor for incoming connections.
 
     // It is passed by signal, therefore it must have a copy constructor
-    std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;
+    std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;   ///< Server endpoint for binding and listening.
 
-    boost::thread_group threads;
-    boost::mutex        mutex;
+    boost::thread_group threads;                                ///< Worker threads for handling asynchronous operations.
+    boost::mutex        mutex;                                  ///< Mutex for thread-safe operations.
 
-    std::vector<boost::uint8_t> received_buffer;
-    std::vector<boost::uint8_t> send_buffer;
-    std::size_t                 received_buffer_index;
+    std::vector<boost::uint8_t> received_buffer;                ///< Buffer for storing received data.
+    std::vector<boost::uint8_t> send_buffer;                    ///< Buffer for storing data to send.
 
-    std::optional<std::atomic<bool>> serverStatus;  // true - is listening or is connected
+    std::optional<std::atomic<bool>> serverStatus;              ///< Indicates whether the server is active or not.
 
 private: // Methods
-    void onAccept(const boost::system::error_code& ec)                    noexcept;
-    void workerThread()                                                   noexcept;
-
-    void onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept;
+    /**
+     * @brief Handles the completion of an asynchronous accept operation.
+     * @param ec Error code resulting from the accept operation.
+     */
+    void onAccept(const boost::system::error_code& ec)    noexcept;
+    /**
+     * @brief Runs the Boost.Asio IO context in a separate worker thread.
+     */
+    void workerThread()                                   noexcept;
+    /**
+     * @brief Handles the completion of an asynchronous receive operation.
+     * @param ec Error code resulting from the receive operation.
+     * @param bytes Number of bytes received.
+     * @param messageLabel QLabel to display the received message.
+     */
+    void onRecv(const boost::system::error_code& ec,
+                const size_t bytes, QLabel *messageLabel) noexcept;
 
 
 signals:
-    void listening_on(const std::shared_ptr<boost::asio::ip::tcp::endpoint>&);
-    void connectionStatus(const char*);
+    /**
+     * @brief Signal emitted when the server starts listening on an endpoint.
+     * @param endpoint The endpoint on which the server is listening.
+     */
+    void listening_on(const std::shared_ptr<boost::asio::ip::tcp::endpoint>& endpoint);
+    /**
+     * @brief Signal emitted to indicate the server's connection status.
+     * @param status Connection status message.
+     */
+    void connectionStatus(const char* status);
 
 
 public:
+    /**
+     * @brief Constructs a new Server object.
+     * @param parent The parent QObject.
+     */
     Server(QObject* parent = nullptr);
+    /**
+     * @brief Destructor for the Server class.
+     */
     ~Server();
-
+    /**
+     * @brief Gets the current status of the server.
+     * @return Optional atomic boolean indicating if the server is active.
+     *         If the listen method has not yet been called, the socket and
+     *         acceptor do not require closing, and nullopt will be returned.
+     */
     const std::optional<std::atomic<bool>>& is_working() const;
-
+    /**
+     * @brief Starts the server and listens for incoming connections.
+     */
     void listen()                                             noexcept;
-
+    /**
+     * @brief Sends data to the connected client.
+     * @param send_buffer Buffer containing data to be sent.
+     */
     void send(const std::vector<boost::uint8_t>& send_buffer) noexcept;
-
+    /**
+     * @brief Receives data from the connected client.
+     * @param messageLabel QLabel to display the received message.
+     */
     void recv(QLabel* messageLabel)                           noexcept;
-
+    /**
+     * @brief Closes the current client connection.
+     */
     void closeConnection()                                    noexcept;
-
-    void finish()                                             noexcept; // Server shutdown
+    /**
+     * @brief Shuts down the server and stops all operations.
+     */
+    void finish()                                             noexcept;
 };
 
 #endif // SERVER_H

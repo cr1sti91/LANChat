@@ -2,7 +2,6 @@
 
 
 Client::Client(QObject* parent) : QObject(parent),
-                                  received_buffer_index(0),
                                   endpoint(nullptr),
                                   clientStatus(std::nullopt)
 {
@@ -52,8 +51,6 @@ const std::optional<std::atomic<bool>> &Client::is_working() const
 
 void Client::connect(const char* ip_address, const unsigned port) noexcept
 {
-    this->clientStatus = true;
-
     try
     {
         this->endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(
@@ -76,6 +73,7 @@ void Client::onConnect(const boost::system::error_code &ec) noexcept
     }
     else
     {
+        this->clientStatus = true;
         emit connectionStatus("  Connected!");
     }
 }
@@ -83,14 +81,30 @@ void Client::onConnect(const boost::system::error_code &ec) noexcept
 
 void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
-
+    boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+                             [this](const boost::system::error_code& ec, const std::size_t bytes){
+                                 if(ec)
+                                 {
+                                     emit connectionStatus("An error occurred while transmitting data.");
+                                 }
+                             });
 }
 
 
 void Client::recv(QLabel* messageLabel) noexcept
 {
-    sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
-                          boost::bind(&Client::onRecv, this, _1, _2, messageLabel));
+    try
+    {
+        boost::lock_guard<boost::mutex> lckgrd(this->mutex);
+
+        if(this->clientStatus.has_value() && this->clientStatus.value())
+            sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
+                                  boost::bind(&Client::onRecv, this, _1, _2, messageLabel));
+    }
+    catch(const std::exception& e)
+    {
+        emit connectionStatus(e.what());
+    }
 }
 
 void Client::onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept
@@ -107,12 +121,17 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes, QLa
     messageLabel->setText(messageLabel->text() + "SERVER: " + QString::fromStdString(received_message) + '\n');
     this->mutex.unlock();
 
-    recv(messageLabel);
+    if(this->clientStatus.has_value() && this->clientStatus.value())
+        recv(messageLabel);
 }
 
 
 void Client::closeConnection() noexcept
 {
+    boost::lock_guard<boost::mutex> lckgrd(this->mutex);
+
+    this->clientStatus = false;
+
     boost::system::error_code ec;
 
     try {
@@ -128,18 +147,16 @@ void Client::closeConnection() noexcept
     {
         emit connectionStatus(e.what());
     }
-
-    this->clientStatus = false;
 }
 
 
 void Client::finish() noexcept
 {
+    this->clientStatus = false;
+
     this->closeConnection();
 
     work.reset();
     io_cntxt->stop();
     threads.join_all();
-
-    this->clientStatus = false;
 }
