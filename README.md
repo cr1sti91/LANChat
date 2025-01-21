@@ -1,5 +1,5 @@
 
-# Chat Application 🖥️💬
+# LANChat 🖥️💬
 
 This is a chat application that allows communication between two devices in a **LAN network**.
 
