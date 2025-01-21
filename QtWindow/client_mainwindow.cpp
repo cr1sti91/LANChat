@@ -201,7 +201,7 @@ void CMainWindow::onConnection(const char* status)
     this->addMessagesLabel();
     this->addUserInput();
 
-    this->client->recv(this->messagesLabel);
+    this->client->recv(this->messagesLabel, this->messageLabelMutex);
 }
 
 void CMainWindow::sendingMessages()

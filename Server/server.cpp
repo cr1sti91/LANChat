@@ -154,13 +154,29 @@ void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 }
 
 
-void Server::recv(QLabel* messageLabel) noexcept
+void Server::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept
 {
-    sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
-                          boost::bind(&Server::onRecv, this, _1, _2, messageLabel));
+    try
+    {
+        if(this->serverStatus.has_value() && this->serverStatus.value())
+            sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
+                                  boost::bind(&Server::onRecv,
+                                              this,
+                                              boost::asio::placeholders::error,
+                                              boost::asio::placeholders::bytes_transferred,
+                                              messageLabel,
+                                              boost::ref(messageLabelMutex)
+                                              )
+                                  );
+    }
+    catch (const std::exception& e)
+    {
+        emit connectionStatus(e.what());
+    }
 }
 
-void Server::onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept
+void Server::onRecv(const boost::system::error_code& ec, const size_t bytes,
+                    QLabel *messageLabel, boost::mutex& messageLabelMutex) noexcept
 {
     if(ec)
     {
@@ -170,16 +186,18 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes, QLa
 
     std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
 
-    this->mutex.lock();
+    messageLabelMutex.lock();
     messageLabel->setText(messageLabel->text() + "CLIENT: " + QString::fromStdString(received_message) + '\n');
-    this->mutex.unlock();
+    messageLabelMutex.unlock();
 
-    recv(messageLabel);
+    recv(messageLabel, messageLabelMutex);
 }
 
 
 void Server::closeConnection() noexcept
 {
+    this->serverStatus = false;
+
     boost::system::error_code ec;
 
     try {
@@ -199,18 +217,16 @@ void Server::closeConnection() noexcept
     {
         emit connectionStatus(e.what());
     }
-
-    this->serverStatus = false;
 }
 
 
 void Server::finish() noexcept
 {
+    this->serverStatus = false;
+
     this->closeConnection();
 
     work.reset();
     io_cntxt->stop();
     threads.join_all();
-
-    this->serverStatus = false;
 }

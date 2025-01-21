@@ -44,7 +44,7 @@ Client::~Client()
     this->threads.join_all();
 }
 
-const std::optional<std::atomic<bool>> &Client::is_working() const
+const std::optional<std::atomic<bool>> &Client::is_working() const noexcept
 {
     return this->clientStatus;
 }
@@ -91,15 +91,20 @@ void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 }
 
 
-void Client::recv(QLabel* messageLabel) noexcept
+void Client::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept
 {
     try
     {
-        boost::lock_guard<boost::mutex> lckgrd(this->mutex);
-
         if(this->clientStatus.has_value() && this->clientStatus.value())
             sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
-                                  boost::bind(&Client::onRecv, this, _1, _2, messageLabel));
+                                  boost::bind(&Client::onRecv,
+                                              this,
+                                              boost::asio::placeholders::error,
+                                              boost::asio::placeholders::bytes_transferred,
+                                              messageLabel,
+                                              boost::ref(messageLabelMutex)
+                                              )
+                                  );
     }
     catch(const std::exception& e)
     {
@@ -107,7 +112,8 @@ void Client::recv(QLabel* messageLabel) noexcept
     }
 }
 
-void Client::onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept
+void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
+                    QLabel *messageLabel, boost::mutex& messageLabelMutex)   noexcept
 {
     if(ec)
     {
@@ -117,24 +123,23 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes, QLa
 
     std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
 
-    this->mutex.lock();
+    messageLabelMutex.lock();
     messageLabel->setText(messageLabel->text() + "SERVER: " + QString::fromStdString(received_message) + '\n');
-    this->mutex.unlock();
+    messageLabelMutex.unlock();
 
     if(this->clientStatus.has_value() && this->clientStatus.value())
-        recv(messageLabel);
+        recv(messageLabel, messageLabelMutex);
 }
 
 
 void Client::closeConnection() noexcept
 {
-    boost::lock_guard<boost::mutex> lckgrd(this->mutex);
-
     this->clientStatus = false;
 
     boost::system::error_code ec;
 
-    try {
+    try
+    {
         if(sckt->is_open())
         {
             sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
@@ -152,8 +157,6 @@ void Client::closeConnection() noexcept
 
 void Client::finish() noexcept
 {
-    this->clientStatus = false;
-
     this->closeConnection();
 
     work.reset();

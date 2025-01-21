@@ -180,7 +180,7 @@ void SMainWindow::connectionStatus(const char* status)
         this->addMessagesLabel();
         this->addUserInput();
 
-        this->server->recv(this->messagesLabel);
+        this->server->recv(this->messagesLabel, this->messageLabelMutex);
     }
 }
 

@@ -45,7 +45,6 @@ private: // Fields
     std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;   ///< Server endpoint.
 
     boost::thread_group threads;                                ///< Thread group for worker threads.
-    boost::mutex        mutex;                                  ///< Mutex for thread safety.
 
     std::vector<boost::uint8_t> received_buffer;                ///< Buffer for received data.
     std::vector<boost::uint8_t> send_buffer;                    ///< Buffer for data to send.
@@ -73,8 +72,10 @@ private:
      * @param ec The error code from the operation.
      * @param bytes The number of bytes received.
      * @param messageLabel The QLabel where the received message is displayed.
+     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
      */
-    void onRecv(const boost::system::error_code& ec, const size_t bytes, QLabel *messageLabel) noexcept;
+    void onRecv(const boost::system::error_code& ec, const size_t bytes,
+                QLabel *messageLabel, boost::mutex &messageLabelMutex)    noexcept;
 
 
 signals:
@@ -99,31 +100,32 @@ public:
      * @brief Checks if the client is working.
      * @return An optional boolean indicating the client status.
      */
-    const std::optional<std::atomic<bool>>& is_working() const;
+    const std::optional<std::atomic<bool>>& is_working() const       noexcept;
     /**
      * @brief Initiates a connection to a server.
      * @param ip_address The server IP address.
      * @param port The server port.
      */
-    void connect(const char* ip_address, const unsigned port) noexcept;
+    void connect(const char* ip_address, const unsigned port)        noexcept;
     /**
      * @brief Sends data to the server.
      * @param send_buffer The data buffer to send.
      */
-    void send(const std::vector<boost::uint8_t>& send_buffer) noexcept;
+    void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
     /**
      * @brief Starts receiving data from the server.
      * @param messageLabel The QLabel to display received messages.
+     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
      */
-    void recv(QLabel* messageLabel)                           noexcept;
+    void recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept;
     /**
      * @brief Closes the connection to the server.
      */
-    void closeConnection()                                    noexcept;
+    void closeConnection()                                           noexcept;
     /**
      * @brief Shuts down the server and stops all operations.
      */
-    void finish()                                             noexcept;
+    void finish()                                                    noexcept;
 };
 
 #endif // CLIENT_H

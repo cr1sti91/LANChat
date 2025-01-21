@@ -18,28 +18,28 @@ public:
     static inline const char* WINDOWNAME = "Server LANChat";
 
 private: // Fields
-    QPalette*       windowPalette;
-    QPalette*       buttonPalette;
+    QPalette*       windowPalette         {nullptr};
+    QPalette*       buttonPalette         {nullptr};
 
-    QAction*        quitAction;
-    QAction*        listenAction;
+    QAction*        quitAction            {nullptr};
+    QAction*        listenAction          {nullptr};
 
-    QMenu*          appMenu;
-    QMenu*          listenMenu;
+    QMenu*          appMenu               {nullptr};
+    QMenu*          listenMenu            {nullptr};
 
-    QLabel*         connectionStatusLabel;
-    QLabel*         messagesLabel;
+    QLabel*         connectionStatusLabel {nullptr};
+    QLabel*         messagesLabel         {nullptr};
 
-    QScrollArea*    messagesLabelScroll;
-    QHBoxLayout*    messagesLabelLayout;
+    QScrollArea*    messagesLabelScroll   {nullptr};
+    QHBoxLayout*    messagesLabelLayout   {nullptr};
 
-    QLineEdit*      userInputLine;
+    QLineEdit*      userInputLine         {nullptr};
 
-    QWidget*        centralWidget;
-    QVBoxLayout*    verticalLayout;
-    QHBoxLayout*    orizontalLayout;
+    QWidget*        centralWidget         {nullptr};
+    QVBoxLayout*    verticalLayout        {nullptr};
+    QHBoxLayout*    orizontalLayout       {nullptr};
 
-    QPushButton*    sendButton;
+    QPushButton*    sendButton            {nullptr};
 
     QString                        serverIP;
     Server*                        server;
