@@ -1,12 +1,61 @@
-This is a chat application that allows communication between two devices in a LAN network.
-To compile the project, it is necessary to install the conan package manager, which is used to install and 
-link the boost library required for the networking part. For the graphical interface part, it is necessary 
-to install Qt Creator to link the Qt libraries.
-To run the application, it is first necessary to run the ServerChat executable and from the "Listen" menu,
-choose the "Listen" action so that the server finds a valid IP address of the device in the LAN network 
-and then starts listening to it. Then, the ClientChat executable is run with the "Connect" action from the
-"Connect" menu. In the typing lines, it is necessary to enter the IP address and the port on which the 
-server listens (these are in the server status line). After the "Connect" button is clicked, the connection
-is established and communication can be made between ServerChat and ClientChat.
-Clicking the "Listen" or "Connect" button in the menu bar again stops the current session and starts a new 
-connection session.
+
+# Chat Application 🖥️💬
+
+This is a chat application that allows communication between two devices in a **LAN network**.
+
+---
+
+## Requirements 📋
+To compile and run this project, the following tools are required:
+- **[Conan](https://conan.io/):** Package manager for installing and linking the Boost library (required for networking).
+- **[Qt Creator](https://www.qt.io/product/development-tools):** For linking the Qt libraries used in the graphical interface.
+
+---
+
+## How to Compile 🛠️
+1. **Install Conan:**
+   ```bash
+   pip install conan
+   ```
+2. **Install Qt Creator:** Download and install it from [Qt's official website](https://www.qt.io/download).
+3. **Configure Conan and install dependencies:**
+   Inside the project directory, run:
+   ```bash
+   conan install . --build=missing
+   ```
+4. **Build the project:** Open the project in Qt Creator and compile it.
+
+---
+
+## How to Run 🚀
+### Step 1: Start the Server
+1. Run the `ServerChat` executable.
+2. From the **"Listen" menu**, choose the **"Listen" action**.
+   - The server will detect a valid IP address of the device in the LAN network and start listening on it.
+
+### Step 2: Start the Client
+1. Run the `ClientChat` executable.
+2. From the **"Connect" menu**, choose the **"Connect" action**.
+3. In the input fields:
+   - Enter the **IP address** and **port** where the server is listening.
+   - (This information can be found in the server's status line.)
+4. Click the **"Connect" button** to establish the connection.
+
+### Step 3: Chat!
+- Once connected, you can start communicating between the `ServerChat` and `ClientChat`.
+
+### Ending a Session
+- Click the **"Listen"** or **"Connect"** button in the menu bar to stop the current session and start a new one.
+
+---
+
+## Features ✨
+- Communication over a **LAN network**.
+- **Server-Client architecture** for managing connections.
+- **Graphical interface** powered by Qt for an intuitive user experience.
+
+---
+
+## Contact ✉️
+If you have any questions or issues, feel free to contact:
+- **Email:** cristi.tacu61@gmail.com
