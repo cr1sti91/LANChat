@@ -45,7 +45,7 @@ private: // Fields
     // It is passed by signal, therefore it must have a copy constructor
     std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;   ///< Server endpoint for binding and listening.
 
-    boost::thread_group threads;                                ///< Worker threads for handling asynchronous operations.                     
+    boost::thread_group threads;                                ///< Worker threads for handling asynchronous operations.
 
     std::vector<boost::uint8_t> received_buffer;                ///< Buffer for storing received data.
     std::vector<boost::uint8_t> send_buffer;                    ///< Buffer for storing data to send.

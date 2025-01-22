@@ -21,11 +21,13 @@ private: // Fields
     QPalette*       windowPalette         {nullptr};
     QPalette*       buttonPalette         {nullptr};
 
-    QAction*        quitAction            {nullptr};
-    QAction*        listenAction          {nullptr};
-
     QMenu*          appMenu               {nullptr};
     QMenu*          listenMenu            {nullptr};
+    QMenu*          optionsMenu           {nullptr};
+
+    QAction*        quitAction            {nullptr};
+    QAction*        listenAction          {nullptr};
+    QAction*        clearMessagesAction   {nullptr};
 
     QLabel*         connectionStatusLabel {nullptr};
     QLabel*         messagesLabel         {nullptr};
@@ -51,6 +53,10 @@ private: // Fields
 
 
 private: // Methods
+    /**
+     * @brief resetAtributes Reset pointers to widgets with nullptr
+     */
+    void resetAtributes();
     /**
      * @brief Sets the palette for the application window and buttons.
      *        It is called in the SMainWindow constructor.
@@ -107,6 +113,10 @@ private slots:
      * @param status Connection status given by the server object.
      */
     void connectionStatus(const char* status);
+    /**
+     * @brief Deleting messages from messageLabel
+     */
+    void clearMessages();
 
 public:
     /**

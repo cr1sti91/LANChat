@@ -56,6 +56,12 @@ To compile and run this project, the following tools are required:
 
 ---
 
+## License 📄
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
 ## Contact ✉️
 If you have any questions or issues, feel free to contact:
 - **Email:** cristi.tacu61@gmail.com

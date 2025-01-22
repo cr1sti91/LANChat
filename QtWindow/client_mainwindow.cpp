@@ -5,6 +5,26 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE METHODS
 ///
+void CMainWindow::resetAtributes()
+{
+    connectionStatusLabel = nullptr;
+    messagesLabel         = nullptr;
+
+    messagesLabelScroll   = nullptr;
+    messagesLabelLayout   = nullptr;
+
+    userInputLine         = nullptr;
+
+    centralWidget         = nullptr;
+    verticalLayout        = nullptr;
+    orizontalLayout       = nullptr;
+
+    sendButton            = nullptr;
+    ipAddressInput        = nullptr;
+    portInput             = nullptr;
+    connectButton         = nullptr;
+}
+
 void CMainWindow::addServerInfo()
 {
     this->addLayouts();
@@ -29,41 +49,6 @@ void CMainWindow::addServerInfo()
     this->verticalLayout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 }
 
-void CMainWindow::getServerInfo()
-{
-    if(this->centralWidget)
-    {
-        delete this->centralWidget;
-        this->centralWidget = nullptr;
-
-        this->addServerInfo();
-
-        if(this->client->is_working().has_value())
-        {
-            if(this->client->is_working())
-            {
-                if(this->clientThread != nullptr)
-                {
-                    this->clientThread.reset(nullptr);
-                }
-
-                this->client->closeConnection();
-            }
-        }
-    }
-    else
-    {
-        this->addServerInfo();
-        connect(this->client, &Client::connectionStatus, this, &CMainWindow::connectionStatus);
-    }
-
-    connect(this->connectButton, &QPushButton::clicked, this, [this](){
-        this->serverIPaddress = this->ipAddressInput->text().toStdString();
-        this->serverPort = this->portInput->text().toStdString();
-
-        this->startConnection();
-    });
-}
 
 void CMainWindow::setPalettes()
 {
@@ -88,20 +73,24 @@ void CMainWindow::addLayouts()
 
 void CMainWindow::addMenu()
 {
-    this->quitAction = new QAction("Quit", this);
-    this->connectAction = new QAction("Connect", this);
-
-    this->appMenu = menuBar()->addMenu("App");
+    this->appMenu        = menuBar()->addMenu("App");
     this->connectionMenu = menuBar()->addMenu("Connect");
+    this->optionsMenu    = menuBar()->addMenu("Options");
+
+    this->quitAction          = new QAction("Quit", this);
+    this->connectAction       = new QAction("Connect", this);
+    this->clearMessagesAction = new QAction("Clear", this);
 
     this->appMenu->addAction(this->quitAction);
     this->connectionMenu->addAction(this->connectAction);
+    this->optionsMenu->addAction(this->clearMessagesAction);
 
     connect(this->quitAction, &QAction::triggered, this, [this](){
         QApplication::quit();
     });
 
     connect(this->connectAction, &QAction::triggered, this, &CMainWindow::getServerInfo);
+    connect(this->clearMessagesAction, &QAction::triggered, this, &CMainWindow::clearMessages);
 }
 
 void CMainWindow::addStatusLable(const char* status)
@@ -194,7 +183,7 @@ void CMainWindow::startConnection()
 void CMainWindow::onConnection(const char* status)
 {
     delete this->centralWidget; // Upon this destruction all child widgets are destroyed
-    this->centralWidget = nullptr;
+    this->resetAtributes();
 
     this->addLayouts();
     this->addStatusLable(status);
@@ -204,31 +193,48 @@ void CMainWindow::onConnection(const char* status)
     this->client->recv(this->messagesLabel, this->messageLabelMutex);
 }
 
-void CMainWindow::sendingMessages()
-{
-    std::string input = this->userInputLine->text().toStdString();
-
-    if(input.empty())
-        return;
-
-    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
-
-    this->userInputLine->clear();
-
-    this->client->send(this->send_buffer);
-    this->send_buffer.clear();
-
-    input = "CLIENT: " + input + '\n';
-
-    // Adding text to the messageLabel
-    this->messageLabelMutex.lock();
-    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
-    this->messageLabelMutex.unlock();
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE SLOTS
 ///
+
+void CMainWindow::getServerInfo()
+{
+    if(this->centralWidget)
+    {
+        delete this->centralWidget;
+        this->resetAtributes();
+
+        this->addServerInfo();
+
+        if(this->client->is_working().has_value())
+        {
+            if(this->client->is_working())
+            {
+                if(this->clientThread != nullptr)
+                {
+                    this->clientThread.reset(nullptr);
+                }
+
+                this->client->closeConnection();
+            }
+        }
+    }
+    else
+    {
+        this->addServerInfo();
+        connect(this->client, &Client::connectionStatus, this, &CMainWindow::connectionStatus);
+    }
+
+    connect(this->connectButton, &QPushButton::clicked, this, [this](){
+        this->serverIPaddress = this->ipAddressInput->text().toStdString();
+        this->serverPort = this->portInput->text().toStdString();
+
+        this->startConnection();
+    });
+}
+
+
 void CMainWindow::connectionStatus(const char* status)
 {
     if(this->clientThread != nullptr)
@@ -254,6 +260,34 @@ void CMainWindow::connectionStatus(const char* status)
     }
 }
 
+void CMainWindow::sendingMessages()
+{
+    std::string input = this->userInputLine->text().toStdString();
+
+    if(input.empty())
+        return;
+
+    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
+
+    this->userInputLine->clear();
+
+    this->client->send(this->send_buffer);
+    this->send_buffer.clear();
+
+    input = "CLIENT: " + input + '\n';
+
+    // Adding text to the messageLabel
+    this->messageLabelMutex.lock();
+    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
+    this->messageLabelMutex.unlock();
+}
+
+void CMainWindow::clearMessages()
+{
+    if(this->messagesLabel)
+        this->messagesLabel->clear();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
@@ -270,7 +304,10 @@ CMainWindow::~CMainWindow()
     this->client->finish();
 
     if(this->centralWidget)
+    {
         delete centralWidget;
+        this->resetAtributes();
+    }
 }
 
 QSize CMainWindow::sizeHint() const

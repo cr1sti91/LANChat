@@ -22,13 +22,15 @@ public:
 private:
     // Fields
     QPalette*       windowPalette         {nullptr};
-    QPalette*       buttonPalette         {nullptr};
-
-    QAction*        quitAction            {nullptr};
-    QAction*        connectAction         {nullptr};
+    QPalette*       buttonPalette         {nullptr}; 
 
     QMenu*          appMenu               {nullptr};
     QMenu*          connectionMenu        {nullptr};
+    QMenu*          optionsMenu           {nullptr};
+
+    QAction*        quitAction            {nullptr};
+    QAction*        connectAction         {nullptr};
+    QAction*        clearMessagesAction   {nullptr};
 
     QLabel*         connectionStatusLabel {nullptr};
     QLabel*         messagesLabel         {nullptr};
@@ -60,6 +62,10 @@ private:
 
 
 private:
+    /**
+     * @brief resetAtributes Reset pointers to widgets with nullptr
+     */
+    void resetAtributes();
     /**
      * @brief Initializes the widgets needed to receive server data from the user.
      *        It is called in the getServerInfo method when the Connect button is
@@ -130,6 +136,10 @@ private slots:
      *        It is called when the sendButton is clicked.
      */
     void sendingMessages();
+    /**
+     * @brief Deleting messages from messageLabel
+     */
+    void clearMessages();
 
 public:
     /**

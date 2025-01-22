@@ -5,6 +5,23 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE METHODS
 ///
+void SMainWindow::resetAtributes()
+{
+    connectionStatusLabel = nullptr;
+    messagesLabel         = nullptr;
+
+    messagesLabelScroll   = nullptr;
+    messagesLabelLayout   = nullptr;
+
+    userInputLine         = nullptr;
+
+    centralWidget         = nullptr;
+    verticalLayout        = nullptr;
+    orizontalLayout       = nullptr;
+
+    sendButton            = nullptr;
+}
+
 void SMainWindow::setPalettes()
 {
     this->windowPalette = new QPalette(QPalette::Window, Qt::gray);
@@ -28,20 +45,24 @@ void SMainWindow::addLayouts()
 
 void SMainWindow::addMenu()
 {
-    this->quitAction = new QAction("Quit", this);
-    this->listenAction = new QAction("Listen", this);
+    this->appMenu     = menuBar()->addMenu("App");
+    this->listenMenu  = menuBar()->addMenu("Listen");
+    this->optionsMenu = menuBar()->addMenu("Options");
+
+    this->quitAction          = new QAction("Quit", this);
+    this->listenAction        = new QAction("Listen", this);
+    this->clearMessagesAction = new QAction("Clear", this);
+
+    this->appMenu->addAction(this->quitAction);
+    this->listenMenu->addAction(this->listenAction);
+    this->optionsMenu->addAction(this->clearMessagesAction);
 
     connect(this->quitAction, &QAction::triggered, this, [this](){
         QApplication::quit();
     });
 
     connect(this->listenAction, &QAction::triggered, this, &SMainWindow::startListening);
-
-    this->appMenu = menuBar()->addMenu("App");
-    this->listenMenu = menuBar()->addMenu("Listen");
-
-    this->appMenu->addAction(this->quitAction);
-    this->listenMenu->addAction(this->listenAction);
+    connect(this->clearMessagesAction, &QAction::triggered, this, &SMainWindow::clearMessages);
 }
 
 void SMainWindow::addStatusLable()
@@ -103,7 +124,7 @@ void SMainWindow::startListening()
         if(this->server->is_working())
         {
             delete this->centralWidget;
-            this->centralWidget = nullptr;
+            this->resetAtributes();
 
             if(this->serverThread != nullptr)
             {
@@ -184,6 +205,12 @@ void SMainWindow::connectionStatus(const char* status)
     }
 }
 
+void SMainWindow::clearMessages()
+{
+    if(this->messagesLabel)
+        this->messagesLabel->clear();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
@@ -200,7 +227,10 @@ SMainWindow::~SMainWindow()
     this->server->finish();
 
     if(this->centralWidget)
-        delete centralWidget;
+    {
+        delete this->centralWidget;
+        this->resetAtributes();
+    }
 }
 
 QSize SMainWindow::sizeHint() const
