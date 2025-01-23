@@ -57,10 +57,7 @@ void SMainWindow::addMenu()
     this->listenMenu->addAction(this->listenAction);
     this->optionsMenu->addAction(this->clearMessagesAction);
 
-    connect(this->quitAction, &QAction::triggered, this, [this](){
-        QApplication::quit();
-    });
-
+    connect(this->quitAction, &QAction::triggered, this, [this](){ QApplication::quit(); });
     connect(this->listenAction, &QAction::triggered, this, &SMainWindow::startListening);
     connect(this->clearMessagesAction, &QAction::triggered, this, &SMainWindow::clearMessages);
 }
@@ -95,7 +92,9 @@ void SMainWindow::addUserInput()
 
     this->verticalLayout->addLayout(this->orizontalLayout);
 
+    // Messages are sent either when the 'sendButton' button or the Enter key is pressed.
     connect(this->sendButton, &QPushButton::clicked, this, &SMainWindow::sendingMessages);
+    connect(this->userInputLine, &QLineEdit::returnPressed, this, &SMainWindow::sendingMessages);
 }
 
 void SMainWindow::addMessagesLabel()

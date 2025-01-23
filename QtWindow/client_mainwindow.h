@@ -156,6 +156,6 @@ public:
      * @brief Suggests a default size for the main window.
      * @return Suggested size.
      */
-    QSize sizeHint() const;
+    QSize sizeHint() const override;
 };
 #endif // CLIENT_CMAINWINDOW_H
