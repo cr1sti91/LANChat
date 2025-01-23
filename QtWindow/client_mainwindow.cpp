@@ -33,7 +33,7 @@ void CMainWindow::addServerInfo()
     this->ipAddressInput = new QLineEdit();
     this->portInput = new QLineEdit();
     this->connectButton = new QPushButton("Connect");
-    this->connectButton->setPalette(*this->buttonPalette);
+    this->connectButton->setPalette(*this->widgetsPalette);
 
     this->ipAddressInput->setFixedHeight(30);
     this->portInput->setFixedHeight(30);
@@ -50,15 +50,17 @@ void CMainWindow::addServerInfo()
 }
 
 
-void CMainWindow::setPalettes()
+void CMainWindow::addPalettes()
 {
-    this->windowPalette = new QPalette(QPalette::Window, Qt::gray);
-    this->buttonPalette = new QPalette();
+    this->widgetsPalette = new QPalette;
 
-    this->buttonPalette->setColor(QPalette::Button, Qt::blue);
-    this->buttonPalette->setColor(QPalette::ButtonText, Qt::black);
+    // For the buttons
+    this->widgetsPalette->setColor(QPalette::Button, Qt::blue);
+    this->widgetsPalette->setColor(QPalette::ButtonText, Qt::black);
 
-    this->setPalette(*windowPalette);
+    // For the scroll area
+    this->widgetsPalette->setColor(QPalette::Base, Qt::blue);
+
     this->setWindowTitle(CMainWindow::WINDOWNAME);
 }
 
@@ -100,7 +102,7 @@ void CMainWindow::addStatusLable(const char* status)
         if(!std::strcmp(status, "  Connected!"))
             return Qt::green;
         if(!std::strcmp(status, "Waiting for IP address and port..."))
-            return Qt::white;
+            return Qt::cyan;
         return Qt::red;
     }());
 
@@ -124,7 +126,7 @@ void CMainWindow::addUserInput()
     this->sendButton = new QPushButton();
     this->sendButton->setText("Send");
 
-    this->sendButton->setPalette(*this->buttonPalette);
+    this->sendButton->setPalette(*this->widgetsPalette);
 
     this->orizontalLayout->addWidget(this->sendButton);
     this->sendButton->show();
@@ -146,6 +148,7 @@ void CMainWindow::addMessagesLabel()
     this->messagesLabelScroll = new QScrollArea(this->centralWidget);
     this->messagesLabelScroll->setWidget(this->messagesLabel);
     this->messagesLabelScroll->setWidgetResizable(true);
+    this->messagesLabelScroll->setPalette(*this->widgetsPalette);
 
     this->messagesLabelLayout = new QHBoxLayout();
     this->messagesLabelLayout->addWidget(this->messagesLabelScroll);
@@ -254,7 +257,7 @@ void CMainWindow::connectionStatus(const char* status)
 
         QPalette labelPalette;
         labelPalette.setColor(QPalette::WindowText,
-                              (!std::strcmp(status, "Waiting for IP address and port...")? Qt::white : Qt::red));
+                              (!std::strcmp(status, "Waiting for IP address and port...")? Qt::cyan : Qt::red));
         this->connectionStatusLabel->setPalette(labelPalette);
     }
 }
@@ -295,7 +298,7 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent),
                                             client(new Client(this)),
                                             clientThread(nullptr)
 {
-    this->setPalettes();
+    this->addPalettes();
     this->addMenu();
 }
 

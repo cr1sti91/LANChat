@@ -21,8 +21,7 @@ public:
 
 private:
     // Fields
-    QPalette*       windowPalette         {nullptr};
-    QPalette*       buttonPalette         {nullptr}; 
+    QPalette*       widgetsPalette        {nullptr};
 
     QMenu*          appMenu               {nullptr};
     QMenu*          connectionMenu        {nullptr};
@@ -76,7 +75,7 @@ private:
      * @brief Sets the palette for the application window and buttons.
      *        It is called in the CMainWindow constructor.
      */
-    void setPalettes();
+    void addPalettes();
     /**
      * @brief Initializes the central widget and layouts.
      *        It is called in the addServerInfo and onConnection methods.
@@ -144,7 +143,7 @@ private slots:
 public:
     /**
      * @brief Constructor for the CMainWindow class.
-     *        Initializes the client object and calls the setPalettes and addMenu methods.
+     *        Initializes the client object and calls the addPalettes and addMenu methods.
      */
     CMainWindow(QWidget *parent = nullptr);
     /**

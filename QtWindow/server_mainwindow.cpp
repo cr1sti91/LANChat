@@ -24,13 +24,15 @@ void SMainWindow::resetAtributes()
 
 void SMainWindow::setPalettes()
 {
-    this->windowPalette = new QPalette(QPalette::Window, Qt::gray);
-    this->buttonPalette = new QPalette();
+    this->widgetsPalette = new QPalette;
 
-    this->buttonPalette->setColor(QPalette::Button, Qt::blue);
-    this->buttonPalette->setColor(QPalette::ButtonText, Qt::black);
+    // For the buttons
+    this->widgetsPalette->setColor(QPalette::Button, Qt::blue);
+    this->widgetsPalette->setColor(QPalette::ButtonText, Qt::black);
 
-    this->setPalette(*windowPalette);
+    // For the scroll area
+    this->widgetsPalette->setColor(QPalette::Base, Qt::blue);
+
     this->setWindowTitle(SMainWindow::WINDOWNAME);
 }
 
@@ -85,7 +87,7 @@ void SMainWindow::addUserInput()
     this->sendButton = new QPushButton();
     this->sendButton->setText("Send");
 
-    this->sendButton->setPalette(*this->buttonPalette);
+    this->sendButton->setPalette(*this->widgetsPalette);
 
     this->orizontalLayout->addWidget(this->sendButton);
     this->sendButton->show();
@@ -107,6 +109,7 @@ void SMainWindow::addMessagesLabel()
     this->messagesLabelScroll = new QScrollArea(this->centralWidget);
     this->messagesLabelScroll->setWidget(this->messagesLabel);
     this->messagesLabelScroll->setWidgetResizable(true);
+    this->messagesLabelScroll->setPalette(*this->widgetsPalette);
 
     this->messagesLabelLayout = new QHBoxLayout();
     this->messagesLabelLayout->addWidget(this->messagesLabelScroll);
@@ -172,6 +175,9 @@ void SMainWindow::setStatusLabel(const std::shared_ptr<boost::asio::ip::tcp::end
     QString ipAndPort = "  Listening on IP address " + QString::fromStdString(endpoint->address().to_string())
                         + " and port "+ QString::number(endpoint->port()) + "...";
 
+    QPalette statusLabelPalette;
+    statusLabelPalette.setColor(QPalette::WindowText, Qt::cyan);
+    this->connectionStatusLabel->setPalette(statusLabelPalette);
 
     this->connectionStatusLabel->setText(ipAndPort);
 

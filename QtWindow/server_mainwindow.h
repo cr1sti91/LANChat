@@ -18,8 +18,7 @@ public:
     static inline const char* WINDOWNAME = "Server LANChat";
 
 private: // Fields
-    QPalette*       windowPalette         {nullptr};
-    QPalette*       buttonPalette         {nullptr};
+    QPalette*       widgetsPalette        {nullptr};
 
     QMenu*          appMenu               {nullptr};
     QMenu*          listenMenu            {nullptr};
@@ -134,6 +133,6 @@ public:
      * @brief Suggests a default size for the main window.
      * @return Suggested size.
      */
-    QSize sizeHint() const;
+    QSize sizeHint() const override;
 };
 #endif // CLIENT_SMAINWINDOW_H
