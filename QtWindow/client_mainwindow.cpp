@@ -192,8 +192,21 @@ void CMainWindow::onConnection(const char* status)
     this->addMessagesLabel();
     this->addUserInput();
 
-    this->client->recv(this->messagesLabel, this->messageLabelMutex);
+    this->client->recv(boost::bind(&CMainWindow::displayMessage, this, boost::placeholders::_1));
 }
+
+void CMainWindow::displayMessage(const std::string &message)
+{
+    this->messageLabelMutex.lock();
+    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(message));
+
+    // Set scroll bar in the bottom position
+    this->messagesLabelScroll->verticalScrollBar()->setValue(
+        messagesLabelScroll->verticalScrollBar()->maximum()
+        );
+    this->messageLabelMutex.unlock();
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,11 +292,8 @@ void CMainWindow::sendingMessages()
     input = "CLIENT: " + input + '\n';
 
     // Adding text to the messageLabel
-    this->messageLabelMutex.lock();
-    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
-    this->messageLabelMutex.unlock();
+    this->displayMessage(input);
 }
-
 
 void CMainWindow::clearMessages()
 {

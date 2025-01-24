@@ -114,7 +114,7 @@ void Server::listen() noexcept
             }
 
             acceptor->listen(boost::asio::socket_base::max_connections);
-            acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, _1));
+            acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, boost::placeholders::_1));
 
             emit listening_on(endpoint);
         }
@@ -154,7 +154,7 @@ void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 }
 
 
-void Server::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept
+void Server::recv(std::function<void(const std::string&)> displayMessage) noexcept
 {
     try
     {
@@ -164,8 +164,7 @@ void Server::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcep
                                               this,
                                               boost::asio::placeholders::error,
                                               boost::asio::placeholders::bytes_transferred,
-                                              messageLabel,
-                                              boost::ref(messageLabelMutex)
+                                              displayMessage
                                               )
                                   );
     }
@@ -176,7 +175,7 @@ void Server::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcep
 }
 
 void Server::onRecv(const boost::system::error_code& ec, const size_t bytes,
-                    QLabel *messageLabel, boost::mutex& messageLabelMutex) noexcept
+                    std::function<void(const std::string&)> displayMessage) noexcept
 {
     if(ec)
     {
@@ -186,11 +185,9 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes,
 
     std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
 
-    messageLabelMutex.lock();
-    messageLabel->setText(messageLabel->text() + "CLIENT: " + QString::fromStdString(received_message) + '\n');
-    messageLabelMutex.unlock();
+    displayMessage("CLIENT: " + received_message + '\n');
 
-    recv(messageLabel, messageLabelMutex);
+    recv(displayMessage);
 }
 
 

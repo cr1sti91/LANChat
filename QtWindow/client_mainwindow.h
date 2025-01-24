@@ -115,6 +115,11 @@ private:
      * @param status Connection status message.
      */
     void onConnection(const char* status);
+    /**
+     * @brief displayMessage Display messages in messageLabel.
+     * @param message The message to display.
+     */
+    void displayMessage(const std::string& message);
 
 private slots:
     /**

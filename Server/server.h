@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QMainWindow>
 #include <QPalette>
 #include <QApplication>
@@ -22,6 +23,7 @@
 #include <cstring>
 #include <vector>
 #include <memory>
+#include <functional>
 #include <optional>
 
 
@@ -63,14 +65,14 @@ private: // Methods
      */
     void workerThread()                                   noexcept;
     /**
-     * @brief Handles the completion of an asynchronous receive operation.
-     * @param ec Error code resulting from the receive operation.
-     * @param bytes Number of bytes received.
-     * @param messageLabel QLabel to display the received message.
-     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
+     * @brief Handles completion of a receive operation.
+     * @param ec The error code from the operation.
+     * @param bytes The number of bytes received.
+     * @param displayMessage Function that displays the received message.
+     *                       It receives as argument the type const std::string&.
      */
     void onRecv(const boost::system::error_code& ec, const size_t bytes,
-                QLabel *messageLabel, boost::mutex &messageLabelMutex) noexcept;
+                std::function<void(const std::string&)> displayMessage)    noexcept;
 
 
 signals:
@@ -113,11 +115,11 @@ public:
      */
     void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
     /**
-     * @brief Receives data from the connected client.
-     * @param messageLabel QLabel to display the received message.
-     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
+     * @brief Starts receiving data from the client.
+     * @param displayMessage Function that displays the received message.
+     *                       It receives as argument the type const std::string&.
      */
-    void recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept;
+    void recv(std::function<void(const std::string&)> displayMessage)noexcept;
     /**
      * @brief Closes the current client connection.
      */

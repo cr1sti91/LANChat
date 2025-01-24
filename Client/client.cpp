@@ -57,7 +57,9 @@ void Client::connect(const char* ip_address, const unsigned port) noexcept
                 boost::asio::ip::make_address(ip_address), port
             );
 
-        this->sckt->async_connect(*this->endpoint, boost::bind(&Client::onConnect, this, _1));
+        this->sckt->async_connect(*this->endpoint,
+                                  boost::bind(&Client::onConnect, this, boost::placeholders::_1)
+                                  );
     }
     catch (const std::exception& e)
     {
@@ -91,7 +93,7 @@ void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 }
 
 
-void Client::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept
+void Client::recv(std::function<void (const std::string &)> displayMessage) noexcept
 {
     try
     {
@@ -101,8 +103,7 @@ void Client::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcep
                                               this,
                                               boost::asio::placeholders::error,
                                               boost::asio::placeholders::bytes_transferred,
-                                              messageLabel,
-                                              boost::ref(messageLabelMutex)
+                                              displayMessage
                                               )
                                   );
     }
@@ -113,7 +114,7 @@ void Client::recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcep
 }
 
 void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
-                    QLabel *messageLabel, boost::mutex& messageLabelMutex)   noexcept
+                    std::function<void(const std::string&)> displayMessage)   noexcept
 {
     if(ec)
     {
@@ -123,12 +124,10 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
 
     std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
 
-    messageLabelMutex.lock();
-    messageLabel->setText(messageLabel->text() + "SERVER: " + QString::fromStdString(received_message) + '\n');
-    messageLabelMutex.unlock();
+    displayMessage("SERVER: " + received_message + '\n');
 
     if(this->clientStatus.has_value() && this->clientStatus.value())
-        recv(messageLabel, messageLabelMutex);
+        recv(displayMessage);
 }
 
 

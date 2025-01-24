@@ -162,8 +162,18 @@ void SMainWindow::sendingMessages()
     input = "SERVER: " + input + '\n';
 
     // Adding text to the messageLabel
+    this->displayMessage(input);
+}
+
+void SMainWindow::displayMessage(const std::string &message)
+{
     this->messageLabelMutex.lock();
-    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(input));
+    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(message));
+
+    // Set scroll bar in the bottom position
+    this->messagesLabelScroll->verticalScrollBar()->setValue(
+        messagesLabelScroll->verticalScrollBar()->maximum()
+        );
     this->messageLabelMutex.unlock();
 }
 
@@ -206,7 +216,7 @@ void SMainWindow::connectionStatus(const char* status)
         this->addMessagesLabel();
         this->addUserInput();
 
-        this->server->recv(this->messagesLabel, this->messageLabelMutex);
+        this->server->recv(boost::bind(&SMainWindow::displayMessage, this, boost::placeholders::_1));
     }
 }
 

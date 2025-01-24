@@ -98,6 +98,11 @@ private: // Methods
      *        It is called when the sendButton is clicked.
      */
     void sendingMessages();
+    /**
+     * @brief displayMessage Display messages in messageLabel.
+     * @param message The message to display.
+     */
+    void displayMessage(const std::string& message);
 
 
 private slots:

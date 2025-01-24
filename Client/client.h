@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QMainWindow>
 #include <QPalette>
 #include <QApplication>
@@ -22,6 +23,7 @@
 #include <cstring>
 #include <vector>
 #include <memory>
+#include <functional>
 #include <optional>
 
 /**
@@ -71,11 +73,11 @@ private:
      * @brief Handles completion of a receive operation.
      * @param ec The error code from the operation.
      * @param bytes The number of bytes received.
-     * @param messageLabel The QLabel where the received message is displayed.
-     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
+     * @param displayMessage Function that displays the received message.
+     *                       It receives as argument the type const std::string&.
      */
     void onRecv(const boost::system::error_code& ec, const size_t bytes,
-                QLabel *messageLabel, boost::mutex &messageLabelMutex)    noexcept;
+                std::function<void(const std::string&)> displayMessage)    noexcept;
 
 
 signals:
@@ -114,10 +116,10 @@ public:
     void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
     /**
      * @brief Starts receiving data from the server.
-     * @param messageLabel The QLabel to display received messages.
-     * @param messageLabelMutex The messageLabel mutex which avoids data race for this object
+     * @param displayMessage Function that displays the received message.
+     *                       It receives as argument the type const std::string&.
      */
-    void recv(QLabel* messageLabel, boost::mutex& messageLabelMutex) noexcept;
+    void recv(std::function<void(const std::string&)> displayMessage) noexcept;
     /**
      * @brief Closes the connection to the server.
      */
