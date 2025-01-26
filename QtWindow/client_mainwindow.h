@@ -121,6 +121,8 @@ private:
      */
     void displayMessage(const std::string& message);
 
+    void cleanup();
+
 private slots:
     /**
      * @brief Begins initialization to switch to displaying widgets for reading server

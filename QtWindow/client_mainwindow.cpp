@@ -30,10 +30,12 @@ void CMainWindow::addServerInfo()
     this->addLayouts();
     this->addStatusLable("Waiting for IP address and port...");
 
-    this->ipAddressInput = new QLineEdit();
-    this->portInput = new QLineEdit();
-    this->connectButton = new QPushButton("Connect");
+    this->ipAddressInput = new QLineEdit(this->centralWidget);
+    this->portInput      = new QLineEdit(this->centralWidget);
+    this->connectButton  = new QPushButton(this->centralWidget);
+
     this->connectButton->setPalette(*this->widgetsPalette);
+    this->connectButton->setText("Connect");
 
     this->ipAddressInput->setFixedHeight(30);
     this->portInput->setFixedHeight(30);
@@ -70,13 +72,12 @@ void CMainWindow::addLayouts()
     setCentralWidget(this->centralWidget);
 
     this->verticalLayout =  new QVBoxLayout(this->centralWidget);
-    this->orizontalLayout = new QHBoxLayout();
 }
 
 void CMainWindow::addMenu()
 {
     this->appMenu        = menuBar()->addMenu("App");
-    this->connectionMenu = menuBar()->addMenu("Connect");
+    this->connectionMenu = menuBar()->addMenu("Connection");
     this->optionsMenu    = menuBar()->addMenu("Options");
 
     this->quitAction          = new QAction("Quit", this);
@@ -94,16 +95,17 @@ void CMainWindow::addMenu()
 
 void CMainWindow::addStatusLable(const char* status)
 {
-    this->connectionStatusLabel = new QLabel(status);
+    this->connectionStatusLabel = new QLabel(status, this->centralWidget);
 
     QPalette labelPalette;
 
     labelPalette.setColor(QPalette::WindowText, [status](){
         if(!std::strcmp(status, "  Connected!"))
             return Qt::green;
-        if(!std::strcmp(status, "Waiting for IP address and port..."))
+        else if(!std::strcmp(status, "Waiting for IP address and port..."))
             return Qt::cyan;
-        return Qt::red;
+        else
+            return Qt::red;
     }());
 
     this->connectionStatusLabel->setPalette(labelPalette);
@@ -117,13 +119,16 @@ void CMainWindow::addStatusLable(const char* status)
 
 void CMainWindow::addUserInput()
 {
-    this->userInputLine = new QLineEdit();
+    this->orizontalLayout = new QHBoxLayout();
+    this->verticalLayout->addLayout(this->orizontalLayout);
+
+    this->userInputLine = new QLineEdit(this->centralWidget);
     this->userInputLine->setPlaceholderText("Type...");
 
     this->orizontalLayout->addWidget(this->userInputLine);
     this->userInputLine->show();
 
-    this->sendButton = new QPushButton();
+    this->sendButton = new QPushButton(this->centralWidget);
     this->sendButton->setText("Send");
 
     this->sendButton->setPalette(*this->widgetsPalette);
@@ -131,7 +136,6 @@ void CMainWindow::addUserInput()
     this->orizontalLayout->addWidget(this->sendButton);
     this->sendButton->show();
 
-    this->verticalLayout->addLayout(this->orizontalLayout);
 
     // Messages are sent either when the 'sendButton' button or the Enter key is pressed.
     connect(this->sendButton, &QPushButton::clicked, this, &CMainWindow::sendingMessages);
@@ -140,7 +144,7 @@ void CMainWindow::addUserInput()
 
 void CMainWindow::addMessagesLabel()
 {
-    this->messagesLabel = new QLabel();
+    this->messagesLabel = new QLabel(this->centralWidget);
     this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->messagesLabel->setAlignment(Qt::AlignBottom);
@@ -205,6 +209,11 @@ void CMainWindow::displayMessage(const std::string &message)
         messagesLabelScroll->verticalScrollBar()->maximum()
         );
     this->messageLabelMutex.unlock();
+}
+
+void CMainWindow::cleanup()
+{
+    delete this->widgetsPalette;
 }
 
 
@@ -314,13 +323,19 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent),
 
 CMainWindow::~CMainWindow()
 {
+    // Client disconnection
     this->client->finish();
 
+    // Widget destruction
     if(this->centralWidget)
     {
         delete centralWidget;
         this->resetAtributes();
     }
+
+    this->cleanup();
+
+    qDebug() << "CMainWindow este distrus!";
 }
 
 QSize CMainWindow::sizeHint() const

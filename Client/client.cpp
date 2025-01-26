@@ -40,8 +40,12 @@ void Client::workerThread() noexcept
 
 Client::~Client()
 {
+    if(this->clientStatus.has_value() && this->clientStatus.value())
+        this->finish();
 
     this->threads.join_all();
+
+    qDebug() << "Clientul este distrus!";
 }
 
 const std::optional<std::atomic<bool>> &Client::is_working() const noexcept
@@ -83,13 +87,21 @@ void Client::onConnect(const boost::system::error_code &ec) noexcept
 
 void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
-    boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-                             [this](const boost::system::error_code& ec, const std::size_t bytes){
-                                 if(ec)
-                                 {
-                                     emit connectionStatus("An error occurred while transmitting data.");
-                                 }
-                             });
+    try
+    {
+        boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+                                 [this](const boost::system::error_code& ec, const std::size_t bytes){
+                                     if(ec)
+                                     {
+                                         emit connectionStatus("An error occurred while transmitting data.");
+                                     }
+                                 });
+    }
+    catch (const std::exception& e)
+    {
+        emit connectionStatus(e.what());
+    }
+
 }
 
 
