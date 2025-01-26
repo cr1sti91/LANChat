@@ -42,13 +42,12 @@ void SMainWindow::addLayouts()
     setCentralWidget(this->centralWidget);
 
     this->verticalLayout =  new QVBoxLayout(this->centralWidget);
-    this->orizontalLayout = new QHBoxLayout();
 }
 
 void SMainWindow::addMenu()
 {
     this->appMenu     = menuBar()->addMenu("App");
-    this->listenMenu  = menuBar()->addMenu("Listen");
+    this->listenMenu  = menuBar()->addMenu("Connection");
     this->optionsMenu = menuBar()->addMenu("Options");
 
     this->quitAction          = new QAction("Quit", this);
@@ -66,33 +65,35 @@ void SMainWindow::addMenu()
 
 void SMainWindow::addStatusLable()
 {
-    this->connectionStatusLabel = new QLabel();
+    this->connectionStatusLabel = new QLabel(this->centralWidget);
     this->connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     this->verticalLayout->addWidget(this->connectionStatusLabel, 1, Qt::AlignTop);
     this->connectionStatusLabel->show();
 
+
     connect(this->server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
 }
 
 void SMainWindow::addUserInput()
 {
-    this->userInputLine = new QLineEdit();
+    this->orizontalLayout = new QHBoxLayout();
+    this->verticalLayout->addLayout(this->orizontalLayout);
+
+    this->userInputLine = new QLineEdit(this->centralWidget);
     this->userInputLine->setPlaceholderText("Type...");
 
     this->orizontalLayout->addWidget(this->userInputLine);
     this->userInputLine->show();
 
-    this->sendButton = new QPushButton();
+    this->sendButton = new QPushButton(this->centralWidget);
     this->sendButton->setText("Send");
 
     this->sendButton->setPalette(*this->widgetsPalette);
 
     this->orizontalLayout->addWidget(this->sendButton);
     this->sendButton->show();
-
-    this->verticalLayout->addLayout(this->orizontalLayout);
 
     // Messages are sent either when the 'sendButton' button or the Enter key is pressed.
     connect(this->sendButton, &QPushButton::clicked, this, &SMainWindow::sendingMessages);
@@ -101,7 +102,7 @@ void SMainWindow::addUserInput()
 
 void SMainWindow::addMessagesLabel()
 {
-    this->messagesLabel = new QLabel();
+    this->messagesLabel = new QLabel(this->centralWidget);
     this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     this->messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->messagesLabel->setAlignment(Qt::AlignBottom);
@@ -177,6 +178,11 @@ void SMainWindow::displayMessage(const std::string &message)
     this->messageLabelMutex.unlock();
 }
 
+void SMainWindow::cleanup()
+{
+    delete this->widgetsPalette;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE SLOTS
 ///
@@ -246,6 +252,8 @@ SMainWindow::~SMainWindow()
         delete this->centralWidget;
         this->resetAtributes();
     }
+
+    this->cleanup();
 }
 
 QSize SMainWindow::sizeHint() const

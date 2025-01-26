@@ -44,8 +44,6 @@ Client::~Client()
         this->finish();
 
     this->threads.join_all();
-
-    qDebug() << "Clientul este distrus!";
 }
 
 const std::optional<std::atomic<bool>> &Client::is_working() const noexcept

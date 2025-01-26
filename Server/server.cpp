@@ -41,6 +41,10 @@ void Server::workerThread() noexcept
 
 Server::~Server()
 {
+    if(this->serverStatus.has_value() && this->serverStatus.value())
+        this->finish();
+
+    this->threads.join_all();
 }
 
 const std::optional<std::atomic<bool>> &Server::is_working() const
@@ -144,13 +148,20 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
 
 void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
-    boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
-                             [this](const boost::system::error_code& ec, const std::size_t bytes){
-                               if(ec)
-                                 {
-                                     emit connectionStatus("An error occurred while transmitting data.");
-                                 }
-                             });
+    try
+    {
+        boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+                                 [this](const boost::system::error_code& ec, const std::size_t bytes){
+                                     if(ec)
+                                     {
+                                         emit connectionStatus("An error occurred while transmitting data.");
+                                     }
+                                 });
+    }
+    catch (const std::exception& e)
+    {
+        emit connectionStatus(e.what());
+    }
 }
 
 

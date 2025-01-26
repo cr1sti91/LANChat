@@ -120,7 +120,9 @@ private:
      * @param message The message to display.
      */
     void displayMessage(const std::string& message);
-
+    /**
+     * @brief cleanup Freeing memory allocated that was not freed through the parent-child relationship.
+     */
     void cleanup();
 
 private slots:

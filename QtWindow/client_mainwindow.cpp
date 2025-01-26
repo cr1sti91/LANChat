@@ -334,8 +334,6 @@ CMainWindow::~CMainWindow()
     }
 
     this->cleanup();
-
-    qDebug() << "CMainWindow este distrus!";
 }
 
 QSize CMainWindow::sizeHint() const
