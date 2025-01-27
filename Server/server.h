@@ -39,20 +39,20 @@ private: // Fields
     static constexpr unsigned short THREAD_NR   = 2;            ///< Number of worker threads for Boost.Asio.
     static constexpr unsigned short SERVER_PORT = 55555;        ///< Default port number for the server.
 
-    std::unique_ptr<boost::asio::io_context>        io_cntxt;   ///< Boost.Asio IO context.
-    std::unique_ptr<boost::asio::io_context::work>  work;       ///< Keeps the io_context running.
-    std::unique_ptr<boost::asio::ip::tcp::socket>   sckt;       ///< TCP socket for client connections.
-    std::unique_ptr<boost::asio::ip::tcp::acceptor> acceptor;   ///< TCP acceptor for incoming connections.
+    std::unique_ptr<boost::asio::io_context>        m_io_cntxt;   ///< Boost.Asio IO context.
+    std::unique_ptr<boost::asio::io_context::work>  m_work;       ///< Keeps the io_context running.
+    std::unique_ptr<boost::asio::ip::tcp::socket>   m_sckt;       ///< TCP socket for client connections.
+    std::unique_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;   ///< TCP acceptor for incoming connections.
 
     // It is passed by signal, therefore it must have a copy constructor
-    std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;   ///< Server endpoint for binding and listening.
+    std::shared_ptr<boost::asio::ip::tcp::endpoint> m_endpoint;   ///< Server endpoint for binding and listening.
 
-    boost::thread_group threads;                                ///< Worker threads for handling asynchronous operations.
+    boost::thread_group m_threads;                                ///< Worker threads for handling asynchronous operations.
 
-    std::vector<boost::uint8_t> received_buffer;                ///< Buffer for storing received data.
-    std::vector<boost::uint8_t> send_buffer;                    ///< Buffer for storing data to send.
+    std::vector<boost::uint8_t> m_received_buffer;                ///< Buffer for storing received data.
+    std::vector<boost::uint8_t> m_send_buffer;                    ///< Buffer for storing data to send.
 
-    std::optional<std::atomic<bool>> serverStatus;              ///< Indicates whether the server is active or not.
+    std::optional<std::atomic<bool>> m_serverStatus;              ///< Indicates whether the server is active or not.
 
 private: // Methods
     /**

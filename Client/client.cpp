@@ -2,17 +2,17 @@
 
 
 Client::Client(QObject* parent) : QObject(parent),
-                                  endpoint(nullptr),
-                                  clientStatus(std::nullopt)
+                                  m_endpoint(nullptr),
+                                  m_clientStatus(std::nullopt)
 {
-    this->io_cntxt   = std::make_unique<boost::asio::io_context>();
-    this->work       = std::make_unique<boost::asio::io_service::work>(*io_cntxt);
-    this->sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*io_cntxt);
+    m_io_cntxt   = std::make_unique<boost::asio::io_context>();
+    m_work       = std::make_unique<boost::asio::io_service::work>(*m_io_cntxt);
+    m_sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*m_io_cntxt);
 
-    this->received_buffer.resize(4096);
+    m_received_buffer.resize(4096);
 
     for(short i = 0; i < THREAD_NR; ++i)
-        this->threads.create_thread(boost::bind(&Client::workerThread, this));
+        m_threads.create_thread(boost::bind(&Client::workerThread, this));
 }
 
 void Client::workerThread() noexcept
@@ -23,49 +23,49 @@ void Client::workerThread() noexcept
         try
         {
             boost::system::error_code ec;
-            io_cntxt->run(ec);
+            m_io_cntxt->run(ec);
 
             if(ec)
             {
-                emit connectionStatus("Error workerThread");
+                emit this->connectionStatus("Error workerThread");
             }
             break;
         }
         catch(const std::exception& e)
         {
-            emit connectionStatus("Exception workerThread");
+            emit this->connectionStatus("Exception workerThread");
         }
     }
 }
 
 Client::~Client()
 {
-    if(this->clientStatus.has_value() && this->clientStatus.value())
+    if(m_clientStatus.has_value() && m_clientStatus.value())
         this->finish();
 
-    this->threads.join_all();
+    m_threads.join_all();
 }
 
 const std::optional<std::atomic<bool>> &Client::is_working() const noexcept
 {
-    return this->clientStatus;
+    return m_clientStatus;
 }
 
 void Client::connect(const char* ip_address, const unsigned port) noexcept
 {
     try
     {
-        this->endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(
+        m_endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(
                 boost::asio::ip::make_address(ip_address), port
             );
 
-        this->sckt->async_connect(*this->endpoint,
+        m_sckt->async_connect(*m_endpoint,
                                   boost::bind(&Client::onConnect, this, boost::placeholders::_1)
                                   );
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus("  Connection failed (exception)!");
+        emit this->connectionStatus("  Connection failed (exception)!");
     }
 }
 
@@ -73,12 +73,12 @@ void Client::onConnect(const boost::system::error_code &ec) noexcept
 {
     if(ec)
     {
-        emit connectionStatus("  Connection failed (error)!");
+        emit this->connectionStatus("  Connection failed (error)!");
     }
     else
     {
-        this->clientStatus = true;
-        emit connectionStatus("  Connected!");
+        m_clientStatus = true;
+        emit this->connectionStatus("  Connected!");
     }
 }
 
@@ -87,17 +87,17 @@ void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
     try
     {
-        boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+        boost::asio::async_write(*m_sckt, boost::asio::buffer(send_buffer),
                                  [this](const boost::system::error_code& ec, const std::size_t bytes){
                                      if(ec)
                                      {
-                                         emit connectionStatus("An error occurred while transmitting data.");
+                                         emit this->connectionStatus("An error occurred while transmitting data.");
                                      }
                                  });
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 
 }
@@ -107,8 +107,8 @@ void Client::recv(std::function<void (const std::string &)> displayMessage) noex
 {
     try
     {
-        if(this->clientStatus.has_value() && this->clientStatus.value())
-            sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
+        if(m_clientStatus.has_value() && m_clientStatus.value())
+            m_sckt->async_read_some(boost::asio::buffer(m_received_buffer, m_received_buffer.size()),
                                   boost::bind(&Client::onRecv,
                                               this,
                                               boost::asio::placeholders::error,
@@ -119,7 +119,7 @@ void Client::recv(std::function<void (const std::string &)> displayMessage) noex
     }
     catch(const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
@@ -128,38 +128,38 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
 {
     if(ec)
     {
-        emit connectionStatus("Async_read_some error!");
+        emit this->connectionStatus("Async_read_some error!");
         return;
     }
 
-    std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
+    std::string received_message(m_received_buffer.begin(), m_received_buffer.begin() + bytes);
 
     displayMessage("SERVER: " + received_message + '\n');
 
-    if(this->clientStatus.has_value() && this->clientStatus.value())
-        recv(displayMessage);
+    if(m_clientStatus.has_value() && m_clientStatus.value())
+        this->recv(displayMessage);
 }
 
 
 void Client::closeConnection() noexcept
 {
-    this->clientStatus = false;
+    m_clientStatus = false;
 
     boost::system::error_code ec;
 
     try
     {
-        if(sckt->is_open())
+        if(m_sckt->is_open())
         {
-            sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-            sckt->close(ec);
+            m_sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+            m_sckt->close(ec);
 
-            if(ec) emit connectionStatus("Error on socket shutdown/close!");
+            if(ec) emit this->connectionStatus("Error on socket shutdown/close!");
         }
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
@@ -168,7 +168,7 @@ void Client::finish() noexcept
 {
     this->closeConnection();
 
-    work.reset();
-    io_cntxt->stop();
-    threads.join_all();
+    m_work.reset();
+    m_io_cntxt->stop();
+    m_threads.join_all();
 }

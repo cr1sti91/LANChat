@@ -1,20 +1,20 @@
 #include "server.h"
 
 Server::Server(QObject* parent) : QObject(parent),
-                                  endpoint(nullptr),
-                                  serverStatus(std::nullopt)
+                                  m_endpoint(nullptr),
+                                  m_serverStatus(std::nullopt)
 {
     // Initialization
-    io_cntxt   = std::make_unique<boost::asio::io_context>();
-    work       = std::make_unique<boost::asio::io_service::work>(*io_cntxt);
-    sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*io_cntxt);
-    acceptor   = std::make_unique<boost::asio::ip::tcp::acceptor>(*io_cntxt);
+    m_io_cntxt   = std::make_unique<boost::asio::io_context>();
+    m_work       = std::make_unique<boost::asio::io_service::work>(*m_io_cntxt);
+    m_sckt       = std::make_unique<boost::asio::ip::tcp::socket>(*m_io_cntxt);
+    m_acceptor   = std::make_unique<boost::asio::ip::tcp::acceptor>(*m_io_cntxt);
 
-    received_buffer.resize(4096);
+    m_received_buffer.resize(4096);
 
     // Creating threads for receiving and sending data
     for(short i = 0; i < THREAD_NR; ++i)
-        threads.create_thread(boost::bind(&Server::workerThread, this));
+        m_threads.create_thread(boost::bind(&Server::workerThread, this));
 }
 
 void Server::workerThread() noexcept
@@ -24,37 +24,37 @@ void Server::workerThread() noexcept
         try
         {
             boost::system::error_code ec;
-            io_cntxt->run(ec);
+            m_io_cntxt->run(ec);
 
             if(ec)
             {
-                emit connectionStatus("Error workerThread");
+                emit this->connectionStatus("Error m_workerThread");
             }
             break;
         }
         catch(const std::exception& e)
         {
-            emit connectionStatus("Exception workerThread");
+            emit this->connectionStatus("Exception m_workerThread");
         }
     }
 }
 
 Server::~Server()
 {
-    if(this->serverStatus.has_value() && this->serverStatus.value())
+    if(m_serverStatus.has_value() && m_serverStatus.value())
         this->finish();
 
-    this->threads.join_all();
+    m_threads.join_all();
 }
 
 const std::optional<std::atomic<bool>> &Server::is_working() const
 {
-    return this->serverStatus;
+    return m_serverStatus;
 }
 
 void Server::listen() noexcept
 {
-    this->serverStatus = true;
+    m_serverStatus = true;
 
     try
     {
@@ -76,7 +76,7 @@ void Server::listen() noexcept
             wifi_or_ethernet = ifaceName.contains("Wi-Fi", Qt::CaseInsensitive)) ||
                                ifaceName.startsWith("Ethernet", Qt::CaseInsensitive);
 #else
-            emit connectionStatus("Unknown OS!");
+            emit this->connectionStatus("Unknown OS!");
             return;
 #endif
             if (wifi_or_ethernet)
@@ -89,47 +89,48 @@ void Server::listen() noexcept
                     if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback())
                     {
                         private_IP_address = boost::asio::ip::make_address(entry.ip().toString().toStdString());
-                        endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(private_IP_address,
+                        m_endpoint = std::make_shared<boost::asio::ip::tcp::endpoint>(private_IP_address,
                                                                                       SERVER_PORT);
                         break;
                     }
                 }
 
-                if(endpoint)
+                if(m_endpoint)
                     break;
             }
         }
 
-        if(endpoint)
+        if(m_endpoint)
         {
             boost::system::error_code ec;
 
             // Making the tcp connection
-            acceptor->open(endpoint->protocol());
-            acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-            acceptor->bind(*endpoint, ec);
+            m_acceptor->open(m_endpoint->protocol());
+            m_acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+            m_acceptor->bind(*m_endpoint, ec);
 
             if(ec)
             {
-                emit connectionStatus("Invalid endpoint (probably the port is occupied by another instance)!");
-                endpoint.reset();
-                endpoint = nullptr;
+                emit this->connectionStatus("Invalid m_endpoint (probably the "
+                                            "port is occupied by another instance)!");
+                m_endpoint.reset();
+                m_endpoint = nullptr;
                 return;
             }
 
-            acceptor->listen(boost::asio::socket_base::max_connections);
-            acceptor->async_accept(*sckt, boost::bind(&Server::onAccept, this, boost::placeholders::_1));
+            m_acceptor->listen(boost::asio::socket_base::max_connections);
+            m_acceptor->async_accept(*m_sckt, boost::bind(&Server::onAccept, this, boost::placeholders::_1));
 
-            emit listening_on(endpoint);
+            emit this->listening_on(m_endpoint);
         }
         else
         {
-            throw std::runtime_error("No valid endpoint found after scanning interfaces!");
+            throw std::runtime_error("No valid m_endpoint found after scanning interfaces!");
         }
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
@@ -137,11 +138,11 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
 {
     if(ec)
     {
-        emit connectionStatus("  Connection failed!");
+        emit this->connectionStatus("  Connection failed!");
     }
     else
     {
-        emit connectionStatus("  Connected!");
+        emit this->connectionStatus("  Connected!");
     }
 }
 
@@ -150,17 +151,17 @@ void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
     try
     {
-        boost::asio::async_write(*sckt, boost::asio::buffer(send_buffer),
+        boost::asio::async_write(*m_sckt, boost::asio::buffer(send_buffer),
                                  [this](const boost::system::error_code& ec, const std::size_t bytes){
                                      if(ec)
                                      {
-                                         emit connectionStatus("An error occurred while transmitting data.");
+                                         emit this->connectionStatus("An error occurred while transmitting data.");
                                      }
                                  });
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
@@ -169,8 +170,8 @@ void Server::recv(std::function<void(const std::string&)> displayMessage) noexce
 {
     try
     {
-        if(this->serverStatus.has_value() && this->serverStatus.value())
-            sckt->async_read_some(boost::asio::buffer(received_buffer, received_buffer.size()),
+        if(m_serverStatus.has_value() && m_serverStatus.value())
+            m_sckt->async_read_some(boost::asio::buffer(m_received_buffer, m_received_buffer.size()),
                                   boost::bind(&Server::onRecv,
                                               this,
                                               boost::asio::placeholders::error,
@@ -181,7 +182,7 @@ void Server::recv(std::function<void(const std::string&)> displayMessage) noexce
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
@@ -190,51 +191,51 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes,
 {
     if(ec)
     {
-        emit connectionStatus("Async_read_some error!");
+        emit this->connectionStatus("Async_read_some error!");
         return;
     }
 
-    std::string received_message(received_buffer.begin(), received_buffer.begin() + bytes);
+    std::string received_message(m_received_buffer.begin(), m_received_buffer.begin() + bytes);
 
     displayMessage("CLIENT: " + received_message + '\n');
 
-    recv(displayMessage);
+    this->recv(displayMessage);
 }
 
 
 void Server::closeConnection() noexcept
 {
-    this->serverStatus = false;
+    m_serverStatus = false;
 
     boost::system::error_code ec;
 
     try {
-        if(sckt->is_open())
+        if(m_sckt->is_open())
         {
-            sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-            sckt->close(ec);
+            m_sckt->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+            m_sckt->close(ec);
 
             if(ec) emit connectionStatus("Error on socket shutdown/close!");
         }
 
-        if(acceptor->is_open())
-            acceptor->close();
+        if(m_acceptor->is_open())
+            m_acceptor->close();
 
     }
     catch (const std::exception& e)
     {
-        emit connectionStatus(e.what());
+        emit this->connectionStatus(e.what());
     }
 }
 
 
 void Server::finish() noexcept
 {
-    this->serverStatus = false;
+    m_serverStatus = false;
 
     this->closeConnection();
 
-    work.reset();
-    io_cntxt->stop();
-    threads.join_all();
+    m_work.reset();
+    m_io_cntxt->stop();
+    m_threads.join_all();
 }

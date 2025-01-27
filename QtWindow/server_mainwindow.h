@@ -18,37 +18,37 @@ public:
     static inline const char* WINDOWNAME = "Server LANChat";
 
 private: // Fields
-    QPalette*       widgetsPalette        {nullptr};
+    QPalette*       m_widgetsPalette        {nullptr};
 
-    QMenu*          appMenu               {nullptr};
-    QMenu*          listenMenu            {nullptr};
-    QMenu*          optionsMenu           {nullptr};
+    QMenu*          m_appMenu               {nullptr};
+    QMenu*          m_listenMenu            {nullptr};
+    QMenu*          m_optionsMenu           {nullptr};
 
-    QAction*        quitAction            {nullptr};
-    QAction*        listenAction          {nullptr};
-    QAction*        clearMessagesAction   {nullptr};
+    QAction*        m_quitAction            {nullptr};
+    QAction*        m_listenAction          {nullptr};
+    QAction*        m_clearMessagesAction   {nullptr};
 
-    QLabel*         connectionStatusLabel {nullptr};
-    QLabel*         messagesLabel         {nullptr};
+    QLabel*         m_connectionStatusLabel {nullptr};
+    QLabel*         m_messagesLabel         {nullptr};
 
-    QScrollArea*    messagesLabelScroll   {nullptr};
-    QHBoxLayout*    messagesLabelLayout   {nullptr};
+    QScrollArea*    m_messagesLabelScroll   {nullptr};
+    QHBoxLayout*    m_messagesLabelLayout   {nullptr};
 
-    QLineEdit*      userInputLine         {nullptr};
+    QLineEdit*      m_userInputLine         {nullptr};
 
-    QWidget*        centralWidget         {nullptr};
-    QVBoxLayout*    verticalLayout        {nullptr};
-    QHBoxLayout*    orizontalLayout       {nullptr};
+    QWidget*        m_centralWidget         {nullptr};
+    QVBoxLayout*    m_verticalLayout        {nullptr};
+    QHBoxLayout*    m_orizontalLayout       {nullptr};
 
-    QPushButton*    sendButton            {nullptr};
+    QPushButton*    m_sendButton            {nullptr};
 
-    QString                        serverIP;
-    Server*                        server;
-    std::unique_ptr<boost::thread> serverThread;
+    QString                        m_serverIP;
+    Server*                        m_server;
+    std::unique_ptr<boost::thread> m_serverThread;
 
-    std::vector<boost::uint8_t>    send_buffer;
+    std::vector<boost::uint8_t>    m_send_buffer;
 
-    boost::mutex messageLabelMutex;
+    boost::mutex                   m_messageLabelMutex;
 
 
 private: // Methods

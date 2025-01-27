@@ -37,21 +37,21 @@ class Client : public QObject
     Q_OBJECT // For the use of signals.
 
 private: // Fields
-    static constexpr unsigned short THREAD_NR   = 2;            ///< Number of worker threads.
+    static constexpr unsigned short THREAD_NR   = 2;              ///< Number of worker threads.
 
-    std::unique_ptr<boost::asio::io_context>        io_cntxt;   ///< IO context for asynchronous operations.
-    std::unique_ptr<boost::asio::io_context::work>  work;       ///< Keeps the IO context alive.
-    std::unique_ptr<boost::asio::ip::tcp::socket>   sckt;       ///< TCP socket for communication.
+    std::unique_ptr<boost::asio::io_context>        m_io_cntxt;   ///< IO context for asynchronous operations.
+    std::unique_ptr<boost::asio::io_context::work>  m_work;       ///< Keeps the IO context alive.
+    std::unique_ptr<boost::asio::ip::tcp::socket>   m_sckt;       ///< TCP socket for communication.
 
     // It is passed by signal, therefore it must have a copy constructor
-    std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint;   ///< Server endpoint.
+    std::shared_ptr<boost::asio::ip::tcp::endpoint> m_endpoint;   ///< Server endpoint.
 
-    boost::thread_group threads;                                ///< Thread group for worker threads.
+    boost::thread_group              m_threads;                   ///< Thread group for worker threads.
 
-    std::vector<boost::uint8_t> received_buffer;                ///< Buffer for received data.
-    std::vector<boost::uint8_t> send_buffer;                    ///< Buffer for data to send.
+    std::vector<boost::uint8_t>      m_received_buffer;           ///< Buffer for received data.
+    std::vector<boost::uint8_t>      m_send_buffer;               ///< Buffer for data to send.
 
-    std::optional<std::atomic<bool>> clientStatus;              ///< Indicates if the client is connected.
+    std::optional<std::atomic<bool>> m_clientStatus;              ///< Indicates if the client is connected.
 
 private:
     /**

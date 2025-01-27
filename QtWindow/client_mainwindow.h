@@ -21,43 +21,43 @@ public:
 
 private:
     // Fields
-    QPalette*       widgetsPalette        {nullptr};
+    QPalette*       m_widgetsPalette        {nullptr};
 
-    QMenu*          appMenu               {nullptr};
-    QMenu*          connectionMenu        {nullptr};
-    QMenu*          optionsMenu           {nullptr};
+    QMenu*          m_appMenu               {nullptr};
+    QMenu*          m_connectionMenu        {nullptr};
+    QMenu*          m_optionsMenu           {nullptr};
 
-    QAction*        quitAction            {nullptr};
-    QAction*        connectAction         {nullptr};
-    QAction*        clearMessagesAction   {nullptr};
+    QAction*        m_quitAction            {nullptr};
+    QAction*        m_connectAction         {nullptr};
+    QAction*        m_clearMessagesAction   {nullptr};
 
-    QLabel*         connectionStatusLabel {nullptr};
-    QLabel*         messagesLabel         {nullptr};
+    QLabel*         m_connectionStatusLabel {nullptr};
+    QLabel*         m_messagesLabel         {nullptr};
 
-    QScrollArea*    messagesLabelScroll   {nullptr};
-    QHBoxLayout*    messagesLabelLayout   {nullptr};
+    QScrollArea*    m_messagesLabelScroll   {nullptr};
+    QHBoxLayout*    m_messagesLabelLayout   {nullptr};
 
-    QLineEdit*      userInputLine         {nullptr};
+    QLineEdit*      m_userInputLine         {nullptr};
 
-    QWidget*        centralWidget         {nullptr};
-    QVBoxLayout*    verticalLayout        {nullptr};
-    QHBoxLayout*    orizontalLayout       {nullptr};
+    QWidget*        m_centralWidget         {nullptr};
+    QVBoxLayout*    m_verticalLayout        {nullptr};
+    QHBoxLayout*    m_orizontalLayout       {nullptr};
 
-    QPushButton*    sendButton            {nullptr};
+    QPushButton*    m_sendButton            {nullptr};
 
-    QLineEdit*      ipAddressInput        {nullptr};
-    QLineEdit*      portInput             {nullptr};
-    QPushButton*    connectButton         {nullptr};
+    QLineEdit*      m_ipAddressInput        {nullptr};
+    QLineEdit*      m_portInput             {nullptr};
+    QPushButton*    m_connectButton         {nullptr};
 
-    std::string                        serverPort;
-    std::string                        serverIPaddress;
+    std::string                        m_serverPort;
+    std::string                        m_serverIPaddress;
 
-    Client*                            client;
-    std::unique_ptr<boost::thread>     clientThread;
+    Client*                            m_client;
+    std::unique_ptr<boost::thread>     m_clientThread;
 
-    std::vector<boost::uint8_t>        send_buffer;
+    std::vector<boost::uint8_t>        m_send_buffer;
 
-    boost::mutex                       messageLabelMutex;
+    boost::mutex                       m_messageLabelMutex;
 
 
 private:

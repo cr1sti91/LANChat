@@ -1,164 +1,162 @@
 #include "server_mainwindow.h"
 
-//   Fields are called through the this pointer for explicitness.
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE METHODS
 ///
 void SMainWindow::resetAtributes()
 {
-    connectionStatusLabel = nullptr;
-    messagesLabel         = nullptr;
+    m_connectionStatusLabel = nullptr;
+    m_messagesLabel         = nullptr;
 
-    messagesLabelScroll   = nullptr;
-    messagesLabelLayout   = nullptr;
+    m_messagesLabelScroll   = nullptr;
+    m_messagesLabelLayout   = nullptr;
 
-    userInputLine         = nullptr;
+    m_userInputLine         = nullptr;
 
-    centralWidget         = nullptr;
-    verticalLayout        = nullptr;
-    orizontalLayout       = nullptr;
+    m_centralWidget         = nullptr;
+    m_verticalLayout        = nullptr;
+    m_orizontalLayout       = nullptr;
 
-    sendButton            = nullptr;
+    m_sendButton            = nullptr;
 }
 
 void SMainWindow::setPalettes()
 {
-    this->widgetsPalette = new QPalette;
+    m_widgetsPalette = new QPalette;
 
     // For the buttons
-    this->widgetsPalette->setColor(QPalette::Button, Qt::blue);
-    this->widgetsPalette->setColor(QPalette::ButtonText, Qt::black);
+    m_widgetsPalette->setColor(QPalette::Button, Qt::blue);
+    m_widgetsPalette->setColor(QPalette::ButtonText, Qt::black);
 
     // For the scroll area
-    this->widgetsPalette->setColor(QPalette::Base, Qt::blue);
+    m_widgetsPalette->setColor(QPalette::Base, Qt::blue);
 
-    this->setWindowTitle(SMainWindow::WINDOWNAME);
+    setWindowTitle(SMainWindow::WINDOWNAME);
 }
 
 void SMainWindow::addLayouts()
 {
-    this->centralWidget = new QWidget();
-    setCentralWidget(this->centralWidget);
+    m_centralWidget = new QWidget();
+    setCentralWidget(m_centralWidget);
 
-    this->verticalLayout =  new QVBoxLayout(this->centralWidget);
+    m_verticalLayout =  new QVBoxLayout(m_centralWidget);
 }
 
 void SMainWindow::addMenu()
 {
-    this->appMenu     = menuBar()->addMenu("App");
-    this->listenMenu  = menuBar()->addMenu("Connection");
-    this->optionsMenu = menuBar()->addMenu("Options");
+    m_appMenu     = menuBar()->addMenu("App");
+    m_listenMenu  = menuBar()->addMenu("Connection");
+    m_optionsMenu = menuBar()->addMenu("Options");
 
-    this->quitAction          = new QAction("Quit", this);
-    this->listenAction        = new QAction("Listen", this);
-    this->clearMessagesAction = new QAction("Clear", this);
+    m_quitAction          = new QAction("Quit", this);
+    m_listenAction        = new QAction("Listen", this);
+    m_clearMessagesAction = new QAction("Clear", this);
 
-    this->appMenu->addAction(this->quitAction);
-    this->listenMenu->addAction(this->listenAction);
-    this->optionsMenu->addAction(this->clearMessagesAction);
+    m_appMenu->addAction(m_quitAction);
+    m_listenMenu->addAction(m_listenAction);
+    m_optionsMenu->addAction(m_clearMessagesAction);
 
-    connect(this->quitAction, &QAction::triggered, this, [this](){ QApplication::quit(); });
-    connect(this->listenAction, &QAction::triggered, this, &SMainWindow::startListening);
-    connect(this->clearMessagesAction, &QAction::triggered, this, &SMainWindow::clearMessages);
+    connect(m_quitAction, &QAction::triggered, this, [this](){ QApplication::quit(); });
+    connect(m_listenAction, &QAction::triggered, this, &SMainWindow::startListening);
+    connect(m_clearMessagesAction, &QAction::triggered, this, &SMainWindow::clearMessages);
 }
 
 void SMainWindow::addStatusLable()
 {
-    this->connectionStatusLabel = new QLabel(this->centralWidget);
-    this->connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
-    this->connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_connectionStatusLabel = new QLabel(m_centralWidget);
+    m_connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
+    m_connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-    this->verticalLayout->addWidget(this->connectionStatusLabel, 1, Qt::AlignTop);
-    this->connectionStatusLabel->show();
+    m_verticalLayout->addWidget(m_connectionStatusLabel, 1, Qt::AlignTop);
+    m_connectionStatusLabel->show();
 
 
-    connect(this->server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
+    connect(m_server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
 }
 
 void SMainWindow::addUserInput()
 {
-    this->orizontalLayout = new QHBoxLayout();
-    this->verticalLayout->addLayout(this->orizontalLayout);
+    m_orizontalLayout = new QHBoxLayout();
+    m_verticalLayout->addLayout(m_orizontalLayout);
 
-    this->userInputLine = new QLineEdit(this->centralWidget);
-    this->userInputLine->setPlaceholderText("Type...");
+    m_userInputLine = new QLineEdit(m_centralWidget);
+    m_userInputLine->setPlaceholderText("Type...");
 
-    this->orizontalLayout->addWidget(this->userInputLine);
-    this->userInputLine->show();
+    m_orizontalLayout->addWidget(m_userInputLine);
+    m_userInputLine->show();
 
-    this->sendButton = new QPushButton(this->centralWidget);
-    this->sendButton->setText("Send");
+    m_sendButton = new QPushButton(m_centralWidget);
+    m_sendButton->setText("Send");
 
-    this->sendButton->setPalette(*this->widgetsPalette);
+    m_sendButton->setPalette(*m_widgetsPalette);
 
-    this->orizontalLayout->addWidget(this->sendButton);
-    this->sendButton->show();
+    m_orizontalLayout->addWidget(m_sendButton);
+    m_sendButton->show();
 
-    // Messages are sent either when the 'sendButton' button or the Enter key is pressed.
-    connect(this->sendButton, &QPushButton::clicked, this, &SMainWindow::sendingMessages);
-    connect(this->userInputLine, &QLineEdit::returnPressed, this, &SMainWindow::sendingMessages);
+    // Messages are sent either when the 'm_sendButton' button or the Enter key is pressed.
+    connect(m_sendButton, &QPushButton::clicked, this, &SMainWindow::sendingMessages);
+    connect(m_userInputLine, &QLineEdit::returnPressed, this, &SMainWindow::sendingMessages);
 }
 
 void SMainWindow::addMessagesLabel()
 {
-    this->messagesLabel = new QLabel(this->centralWidget);
-    this->messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
-    this->messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    this->messagesLabel->setAlignment(Qt::AlignBottom);
+    m_messagesLabel = new QLabel(m_centralWidget);
+    m_messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
+    m_messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_messagesLabel->setAlignment(Qt::AlignBottom);
 
-    this->messagesLabelScroll = new QScrollArea(this->centralWidget);
-    this->messagesLabelScroll->setWidget(this->messagesLabel);
-    this->messagesLabelScroll->setWidgetResizable(true);
-    this->messagesLabelScroll->setPalette(*this->widgetsPalette);
+    m_messagesLabelScroll = new QScrollArea(m_centralWidget);
+    m_messagesLabelScroll->setWidget(m_messagesLabel);
+    m_messagesLabelScroll->setWidgetResizable(true);
+    m_messagesLabelScroll->setPalette(*m_widgetsPalette);
 
-    this->messagesLabelLayout = new QHBoxLayout();
-    this->messagesLabelLayout->addWidget(this->messagesLabelScroll);
+    m_messagesLabelLayout = new QHBoxLayout();
+    m_messagesLabelLayout->addWidget(m_messagesLabelScroll);
 
-    this->verticalLayout->addLayout(this->messagesLabelLayout, Qt::AlignCenter);
+    m_verticalLayout->addLayout(m_messagesLabelLayout, Qt::AlignCenter);
 }
 
 void SMainWindow::startListening()
 {
-    // If the server is connected, to initiate a new connection, it is
+    // If the m_server is connected, to initiate a new connection, it is
     // necessary to close the previous one.
-    if(this->server->is_working().has_value())
+    if(m_server->is_working().has_value())
     {
-        if(this->server->is_working())
+        if(m_server->is_working())
         {
-            delete this->centralWidget;
-            this->resetAtributes();
+            delete m_centralWidget;
+            resetAtributes();
 
-            if(this->serverThread != nullptr)
+            if(m_serverThread != nullptr)
             {
-                this->serverThread.reset(nullptr);
+                m_serverThread.reset(nullptr);
             }
 
-            this->server->closeConnection();
+            m_server->closeConnection();
         }
     }
     else
     {
-        connect(this->server, &Server::connectionStatus, this, &SMainWindow::connectionStatus);
+        connect(m_server, &Server::connectionStatus, this, &SMainWindow::connectionStatus);
     }
 
-    this->serverThread = std::make_unique<boost::thread>(&Server::listen, this->server);
+    m_serverThread = std::make_unique<boost::thread>(&Server::listen, m_server);
     this->addLayouts();
     this->addStatusLable();
 }
 
 void SMainWindow::sendingMessages()
 {
-    std::string input = this->userInputLine->text().toStdString();
+    std::string input = m_userInputLine->text().toStdString();
 
     if(input.empty())
         return;
 
-    std::copy(input.begin(), input.end(), std::back_inserter(this->send_buffer));
-    this->userInputLine->clear();
+    std::copy(input.begin(), input.end(), std::back_inserter(m_send_buffer));
+    m_userInputLine->clear();
 
-    this->server->send(this->send_buffer);
-    this->send_buffer.clear();
+    m_server->send(m_send_buffer);
+    m_send_buffer.clear();
 
     input = "SERVER: " + input + '\n';
 
@@ -168,19 +166,19 @@ void SMainWindow::sendingMessages()
 
 void SMainWindow::displayMessage(const std::string &message)
 {
-    this->messageLabelMutex.lock();
-    messagesLabel->setText(messagesLabel->text() + QString::fromStdString(message));
+    m_messageLabelMutex.lock();
+    m_messagesLabel->setText(m_messagesLabel->text() + QString::fromStdString(message));
 
     // Set scroll bar in the bottom position
-    this->messagesLabelScroll->verticalScrollBar()->setValue(
-        messagesLabelScroll->verticalScrollBar()->maximum()
+    m_messagesLabelScroll->verticalScrollBar()->setValue(
+        m_messagesLabelScroll->verticalScrollBar()->maximum()
         );
-    this->messageLabelMutex.unlock();
+    m_messageLabelMutex.unlock();
 }
 
 void SMainWindow::cleanup()
 {
-    delete this->widgetsPalette;
+    delete m_widgetsPalette;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -193,51 +191,51 @@ void SMainWindow::setStatusLabel(const std::shared_ptr<boost::asio::ip::tcp::end
 
     QPalette statusLabelPalette;
     statusLabelPalette.setColor(QPalette::WindowText, Qt::cyan);
-    this->connectionStatusLabel->setPalette(statusLabelPalette);
+    m_connectionStatusLabel->setPalette(statusLabelPalette);
 
-    this->connectionStatusLabel->setText(ipAndPort);
+    m_connectionStatusLabel->setText(ipAndPort);
 
     // Disconnection from signal
-    disconnect(this->server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
+    disconnect(m_server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
 }
 
 void SMainWindow::connectionStatus(const char* status)
 {
-    if(this->serverThread != nullptr)
+    if(m_serverThread != nullptr)
     {
-        // serverThread is deleted because the attempt to connect has finished.
-        this->serverThread->join();
-        this->serverThread.reset(nullptr);
-        this->serverThread = nullptr;
+        // m_serverThread is deleted because the attempt to connect has finished.
+        m_serverThread->join();
+        m_serverThread.reset(nullptr);
+        m_serverThread = nullptr;
     }
 
     QPalette labelPalette;
-    this->connectionStatusLabel->setText(status);
+    m_connectionStatusLabel->setText(status);
 
     labelPalette.setColor(QPalette::WindowText, (!std::strcmp(status, "  Connected!"))? Qt::green : Qt::red);
-    this->connectionStatusLabel->setPalette(labelPalette);
+    m_connectionStatusLabel->setPalette(labelPalette);
 
     if(!std::strcmp(status, "  Connected!"))
     {
         this->addMessagesLabel();
         this->addUserInput();
 
-        this->server->recv(boost::bind(&SMainWindow::displayMessage, this, boost::placeholders::_1));
+        m_server->recv(boost::bind(&SMainWindow::displayMessage, this, boost::placeholders::_1));
     }
 }
 
 void SMainWindow::clearMessages()
 {
-    if(this->messagesLabel)
-        this->messagesLabel->clear();
+    if(m_messagesLabel)
+        m_messagesLabel->clear();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
 SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
-                                            server(new Server(this)),
-                                            serverThread(nullptr)
+                                            m_server(new Server(this)),
+                                            m_serverThread(nullptr)
 {
     this->setPalettes();
     this->addMenu();
@@ -245,11 +243,11 @@ SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
 
 SMainWindow::~SMainWindow()
 {
-    this->server->finish();
+    m_server->finish();
 
-    if(this->centralWidget)
+    if(m_centralWidget)
     {
-        delete this->centralWidget;
+        delete m_centralWidget;
         this->resetAtributes();
     }
 
