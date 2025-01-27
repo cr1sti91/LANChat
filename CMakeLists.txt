@@ -31,27 +31,11 @@ add_subdirectory(docs)
 
 # Source files
 # The source files include header files so we can view them in QT Creator.
-file(GLOB serverFiles Server/*.cpp Server/*.h)
-file(GLOB clientFiles Client/*.cpp Client/*.h)
+file(GLOB_RECURSE SERVER_SOURCES Server/*.cpp Server/*.h)
+file(GLOB_RECURSE CLIENT_SOURCES Client/*.cpp Client/*.h)
 
-set(SERVER_SOURCES
-    server_main.cpp
-    QtWindow/server_mainwindow.cpp
-    QtWindow/server_mainwindow.h
-    ${serverFiles}
-    )
-
-set(CLIENT_SOURCES
-    client_main.cpp
-    QtWindow/client_mainwindow.cpp
-    QtWindow/client_mainwindow.h
-    ${clientFiles}
-    )
-
-set(SERVER_DIRECTORIES
-    Server)
-set(CLIENT_DIRECTORIES
-    Client)
+set(SERVER_DIRECTORIES Server/include/)
+set(CLIENT_DIRECTORIES Client/include/)
 
 function(configure_target target_name sources include_directories)
     if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

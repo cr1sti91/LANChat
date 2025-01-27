@@ -1,0 +1,9 @@
+build/
+CMakeLists.txt.user
+CMakeUserPresets.json
+
+docs/doxygen-awesome.css
+docs/doxygen-awesome-sidebar-only.css
+
+.vscode
+
