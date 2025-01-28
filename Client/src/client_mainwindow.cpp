@@ -58,7 +58,7 @@ void CMainWindow::addPalettes()
     m_widgetsPalette->setColor(QPalette::Button, Qt::blue);
     m_widgetsPalette->setColor(QPalette::ButtonText, Qt::black);
 
-    // For the scroll area
+    // For the scroll bar
     m_widgetsPalette->setColor(QPalette::Base, Qt::blue);
 
     setWindowTitle(CMainWindow::WINDOWNAME);
@@ -145,6 +145,8 @@ void CMainWindow::addMessagesLabel()
     m_messagesLabel = new QLabel(m_centralWidget);
     m_messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     m_messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_messagesLabel->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+    m_messagesLabel->setWordWrap(true);
     m_messagesLabel->setAlignment(Qt::AlignBottom);
 
     m_messagesLabelScroll = new QScrollArea(m_centralWidget);
@@ -194,7 +196,9 @@ void CMainWindow::onConnection(const char* status)
     this->addMessagesLabel();
     this->addUserInput();
 
-    m_client->recv(boost::bind(&CMainWindow::displayMessage, this, boost::placeholders::_1));
+    m_client->recv();
+
+    connect(m_client, &Client::message_received, this, &CMainWindow::displayMessage);
 }
 
 void CMainWindow::displayMessage(const std::string &message)
@@ -202,10 +206,12 @@ void CMainWindow::displayMessage(const std::string &message)
     m_messageLabelMutex.lock();
     m_messagesLabel->setText(m_messagesLabel->text() + QString::fromStdString(message));
 
+    m_messagesLabel->adjustSize();
+
     // Set scroll bar in the bottom position
-    m_messagesLabelScroll->verticalScrollBar()->setValue(
+    m_messagesLabelScroll->verticalScrollBar()->setSliderPosition(
         m_messagesLabelScroll->verticalScrollBar()->maximum()
-        );
+    );
     m_messageLabelMutex.unlock();
 }
 
@@ -224,6 +230,8 @@ void CMainWindow::getServerInfo()
 {
     if(m_centralWidget)
     {
+        disconnect(m_client, &Client::message_received, nullptr, nullptr);
+
         delete m_centralWidget;
         this->resetAtributes();
 
@@ -296,7 +304,7 @@ void CMainWindow::sendingMessages()
     m_client->send(m_send_buffer);
     m_send_buffer.clear();
 
-    input = "CLIENT: " + input + '\n';
+    input = "<span style='color: green;'>CLIENT: </span>" + input + "<br>";
 
     // Adding text to the messageLabel
     this->displayMessage(input);

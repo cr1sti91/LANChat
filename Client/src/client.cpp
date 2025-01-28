@@ -103,7 +103,7 @@ void Client::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 }
 
 
-void Client::recv(std::function<void (const std::string &)> displayMessage) noexcept
+void Client::recv() noexcept
 {
     try
     {
@@ -112,8 +112,7 @@ void Client::recv(std::function<void (const std::string &)> displayMessage) noex
                                   boost::bind(&Client::onRecv,
                                               this,
                                               boost::asio::placeholders::error,
-                                              boost::asio::placeholders::bytes_transferred,
-                                              displayMessage
+                                              boost::asio::placeholders::bytes_transferred
                                               )
                                   );
     }
@@ -123,8 +122,7 @@ void Client::recv(std::function<void (const std::string &)> displayMessage) noex
     }
 }
 
-void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
-                    std::function<void(const std::string&)> displayMessage)   noexcept
+void Client::onRecv(const boost::system::error_code& ec, const size_t bytes)   noexcept
 {
     if(ec)
     {
@@ -133,11 +131,12 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes,
     }
 
     std::string received_message(m_received_buffer.begin(), m_received_buffer.begin() + bytes);
+    received_message = "<span style='color: red;'>SERVER: </span>" + received_message + "<br>";
 
-    displayMessage("SERVER: " + received_message + '\n');
+    emit this->message_received(received_message);
 
     if(m_clientStatus.has_value() && m_clientStatus.value())
-        this->recv(displayMessage);
+        this->recv();
 }
 
 

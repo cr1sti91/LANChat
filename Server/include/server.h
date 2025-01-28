@@ -68,11 +68,8 @@ private: // Methods
      * @brief Handles completion of a receive operation.
      * @param ec The error code from the operation.
      * @param bytes The number of bytes received.
-     * @param displayMessage Function that displays the received message.
-     *                       It receives as argument the type const std::string&.
      */
-    void onRecv(const boost::system::error_code& ec, const size_t bytes,
-                std::function<void(const std::string&)> displayMessage)    noexcept;
+    void onRecv(const boost::system::error_code& ec, const size_t bytes)    noexcept;
 
 
 signals:
@@ -81,6 +78,11 @@ signals:
      * @param endpoint The endpoint on which the server is listening.
      */
     void listening_on(const std::shared_ptr<boost::asio::ip::tcp::endpoint>& endpoint);
+    /**
+     * @brief message_received It is emitted when the server receives a message from the client.
+     * @param message Message received
+     */
+    void message_received(const std::string& message);
     /**
      * @brief Signal emitted to indicate the server's connection status.
      * @param status Connection status message.
@@ -116,10 +118,8 @@ public:
     void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
     /**
      * @brief Starts receiving data from the client.
-     * @param displayMessage Function that displays the received message.
-     *                       It receives as argument the type const std::string&.
      */
-    void recv(std::function<void(const std::string&)> displayMessage)noexcept;
+    void recv()noexcept;
     /**
      * @brief Closes the current client connection.
      */

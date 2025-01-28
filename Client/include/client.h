@@ -73,14 +73,16 @@ private:
      * @brief Handles completion of a receive operation.
      * @param ec The error code from the operation.
      * @param bytes The number of bytes received.
-     * @param displayMessage Function that displays the received message.
-     *                       It receives as argument the type const std::string&.
      */
-    void onRecv(const boost::system::error_code& ec, const size_t bytes,
-                std::function<void(const std::string&)> displayMessage)    noexcept;
+    void onRecv(const boost::system::error_code& ec, const size_t bytes)  noexcept;
 
 
 signals:
+    /**
+     * @brief message_received It is emitted when the client receives a message from the server.
+     * @param message Message received
+     */
+    void message_received(const std::string& message);
     /**
      * @brief Emitted to inform about the connection status.
      * @param status The connection status message.
@@ -116,10 +118,8 @@ public:
     void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
     /**
      * @brief Starts receiving data from the server.
-     * @param displayMessage Function that displays the received message.
-     *                       It receives as argument the type const std::string&.
      */
-    void recv(std::function<void(const std::string&)> displayMessage) noexcept;
+    void recv() noexcept;
     /**
      * @brief Closes the connection to the server.
      */

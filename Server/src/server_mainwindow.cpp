@@ -67,6 +67,10 @@ void SMainWindow::addStatusLable()
     m_connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     m_connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
+    // To be able to copy the address and port, being selected
+    m_connectionStatusLabel->setTextInteractionFlags(Qt::TextSelectableByMouse |
+                                                     Qt::TextSelectableByKeyboard);
+
     m_verticalLayout->addWidget(m_connectionStatusLabel, 1, Qt::AlignTop);
     m_connectionStatusLabel->show();
 
@@ -103,6 +107,8 @@ void SMainWindow::addMessagesLabel()
     m_messagesLabel = new QLabel(m_centralWidget);
     m_messagesLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     m_messagesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_messagesLabel->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+    m_messagesLabel->setWordWrap(true);
     m_messagesLabel->setAlignment(Qt::AlignBottom);
 
     m_messagesLabelScroll = new QScrollArea(m_centralWidget);
@@ -124,6 +130,8 @@ void SMainWindow::startListening()
     {
         if(m_server->is_working())
         {
+            disconnect(m_server, &Server::message_received, nullptr, nullptr);
+
             delete m_centralWidget;
             resetAtributes();
 
@@ -158,7 +166,7 @@ void SMainWindow::sendingMessages()
     m_server->send(m_send_buffer);
     m_send_buffer.clear();
 
-    input = "SERVER: " + input + '\n';
+    input = "<span style='color: red;'>SERVER: </span>" + input + "<br>";
 
     // Adding text to the messageLabel
     this->displayMessage(input);
@@ -169,10 +177,14 @@ void SMainWindow::displayMessage(const std::string &message)
     m_messageLabelMutex.lock();
     m_messagesLabel->setText(m_messagesLabel->text() + QString::fromStdString(message));
 
+    // Adjust the widget size to fit the new content.
+    // This ensures that the text is fully visible and that the scrollbar will adjust accordingly.
+    m_messagesLabel->adjustSize();
+
     // Set scroll bar in the bottom position
     m_messagesLabelScroll->verticalScrollBar()->setValue(
         m_messagesLabelScroll->verticalScrollBar()->maximum()
-        );
+    );
     m_messageLabelMutex.unlock();
 }
 
@@ -220,7 +232,9 @@ void SMainWindow::connectionStatus(const char* status)
         this->addMessagesLabel();
         this->addUserInput();
 
-        m_server->recv(boost::bind(&SMainWindow::displayMessage, this, boost::placeholders::_1));
+        m_server->recv();
+
+        connect(m_server,&Server::message_received, this, &SMainWindow::displayMessage);
     }
 }
 
