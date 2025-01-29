@@ -28,6 +28,7 @@ private: // Fields
     QAction*        m_listenAction          {nullptr};
     QAction*        m_clearMessagesAction   {nullptr};
 
+    QLabel*         m_welcomeLabel          {nullptr};
     QLabel*         m_connectionStatusLabel {nullptr};
     QLabel*         m_messagesLabel         {nullptr};
 
@@ -50,8 +51,19 @@ private: // Fields
 
     boost::mutex                   m_messageLabelMutex;
 
+    bool                           m_hasEverConnected;
+
 
 private: // Methods
+    /**
+     * @brief initWelcomeScreen Initializing widgets to be displayed immediately upon widget creation
+     */
+    void initWelcomeScreen();
+    /**
+     * @brief adjustFontSize Font adjustment when the window is resized
+     * @param fontSize Font size for the m_welcomeLabel
+     */
+    void adjustFontSize(const int& fontSize);
     /**
      * @brief resetAtributes Reset pointers to widgets with nullptr
      */
@@ -126,6 +138,17 @@ private slots:
      */
     void clearMessages();
 
+protected:
+    /**
+     * @brief Suggests a default size for the main window.
+     * @return Suggested size.
+     */
+    QSize sizeHint() const override;
+    /**
+     * @brief resizeEvent Override this to handle resize events (ev).
+     */
+    void resizeEvent(QResizeEvent* event) override;
+
 public:
     /**
      * @brief Constructor for the SMainWindow class. Initializes the client object and
@@ -138,10 +161,5 @@ public:
      *        Delete centralWidget (all child widgets are destroyed).
      */
     ~SMainWindow();
-    /**
-     * @brief Suggests a default size for the main window.
-     * @return Suggested size.
-     */
-    QSize sizeHint() const override;
 };
 #endif // CLIENT_SMAINWINDOW_H

@@ -3,8 +3,35 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PRIVATE METHODS
 ///
+void SMainWindow::initWelcomeScreen()
+{
+    m_centralWidget  = new QWidget();
+    m_welcomeLabel   = new QLabel("LANChat Server", m_centralWidget);
+    m_verticalLayout = new QVBoxLayout(m_centralWidget);
+
+    setCentralWidget(m_centralWidget);
+    m_verticalLayout->addWidget(m_welcomeLabel);
+    m_welcomeLabel->setAlignment(Qt::AlignCenter);
+
+    this->adjustFontSize(width() / 12);
+}
+
+void SMainWindow::adjustFontSize(const int &fontSize)
+{
+    if(m_welcomeLabel)
+    {
+        // %1 is replaced with the calculated value for the font size.
+        m_welcomeLabel->setStyleSheet(QString("color: #ff5733; font-weight: bold; font-style: italic;"
+                                              " text-decoration: underline; font-size: %1px;")
+                                            .arg(fontSize));
+    }
+}
+
 void SMainWindow::resetAtributes()
 {
+    if(m_welcomeLabel)
+        m_welcomeLabel = nullptr;
+
     m_connectionStatusLabel = nullptr;
     m_messagesLabel         = nullptr;
 
@@ -126,25 +153,35 @@ void SMainWindow::startListening()
 {
     // If the m_server is connected, to initiate a new connection, it is
     // necessary to close the previous one.
-    if(m_server->is_working().has_value())
+    if(m_server->is_working().has_value() && m_server->is_working())
     {
-        if(m_server->is_working())
-        {
-            disconnect(m_server, &Server::message_received, nullptr, nullptr);
+        disconnect(m_server, &Server::message_received, nullptr, nullptr);
 
+        if(m_centralWidget)
+        {
             delete m_centralWidget;
             resetAtributes();
-
-            if(m_serverThread != nullptr)
-            {
-                m_serverThread.reset(nullptr);
-            }
-
-            m_server->closeConnection();
         }
+
+        if(m_serverThread != nullptr)
+        {
+            m_serverThread.reset(nullptr);
+        }
+
+        m_server->closeConnection();
+
     }
     else
     {
+        m_hasEverConnected = true;
+
+        //Deleting the central widget to create a new one.
+        if(m_centralWidget)
+        {
+            delete m_centralWidget;
+            this->resetAtributes();
+        }
+
         connect(m_server, &Server::connectionStatus, this, &SMainWindow::connectionStatus);
     }
 
@@ -245,12 +282,31 @@ void SMainWindow::clearMessages()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
+/// PROTECTED METHODS
+///
+QSize SMainWindow::sizeHint() const
+{
+    return QSize(700, 500);
+}
+
+void SMainWindow::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    if(!m_hasEverConnected)
+        this->adjustFontSize(event->size().width() / 12);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
 SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
                                             m_server(new Server(this)),
-                                            m_serverThread(nullptr)
+                                            m_serverThread(nullptr),
+                                            m_hasEverConnected(false)
 {
+    this->initWelcomeScreen();
+
     this->setPalettes();
     this->addMenu();
 }
@@ -266,10 +322,5 @@ SMainWindow::~SMainWindow()
     }
 
     this->cleanup();
-}
-
-QSize SMainWindow::sizeHint() const
-{
-    return QSize(700, 500);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////

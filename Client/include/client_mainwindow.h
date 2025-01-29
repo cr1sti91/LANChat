@@ -168,8 +168,7 @@ protected:
      */
     QSize sizeHint() const override;
     /**
-     * @brief resizeEvent
-     * @param event
+     * @brief resizeEvent Override this to handle resize events (ev).
      */
     void resizeEvent(QResizeEvent* event) override;
 

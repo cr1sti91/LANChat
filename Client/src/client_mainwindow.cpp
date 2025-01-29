@@ -13,7 +13,7 @@ void CMainWindow::initWelcomeScreen()
     m_verticalLayout->addWidget(m_welcomeLabel);
     m_welcomeLabel->setAlignment(Qt::AlignCenter);
 
-    this->adjustFontSize(width() / 10);
+    this->adjustFontSize(width() / 12);
 }
 
 void CMainWindow::adjustFontSize(const int& fontSize)
@@ -24,12 +24,6 @@ void CMainWindow::adjustFontSize(const int& fontSize)
         m_welcomeLabel->setStyleSheet(QString("color: #7ed957; font-weight: bold; f"
                                       "ont-style: italic; text-decoration: underline; font-size: %1px;")
                                           .arg(fontSize));
-        // m_welcomeLabel->setText(QString("<span style='color: green; font-weight: bold; "
-        //                                 "font-style: italic; text-decoration: underline; "
-        //                                 "font-size: %1px;'>" + m_welcomeLabel->text() +
-        //                                 "</span>").arg(fontSize));
-
-        qDebug() << "Resize Event triggered. New Width:" << fontSize;
     }
 }
 
@@ -371,7 +365,7 @@ void CMainWindow::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
 
     if(!m_hasEverConnected)
-        this->adjustFontSize(event->size().width() / 10);
+        this->adjustFontSize(event->size().width() / 12);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

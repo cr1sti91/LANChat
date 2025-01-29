@@ -13,6 +13,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QResizeEvent>
 #include <QMenuBar>
 #include <QObject>
 #include <QLabel>
