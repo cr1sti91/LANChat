@@ -30,12 +30,12 @@ To compile and run this project, the following tools are required:
 ## How to Run 🚀
 ### Step 1: Start the Server
 1. Run the `ServerChat` executable.
-2. From the **"Listen" menu**, choose the **"Listen" action**.
+2. From the **"Connection" menu**, choose the **"Listen" action**.
    - The server will detect a valid IP address of the device in the LAN network and start listening on it.
 
 ### Step 2: Start the Client
 1. Run the `ClientChat` executable.
-2. From the **"Connect" menu**, choose the **"Connect" action**.
+2. From the **"Connection" menu**, choose the **"Connect" action**.
 3. In the input fields:
    - Enter the **IP address** and **port** where the server is listening.
    - (This information can be found in the server's status line.)
@@ -45,7 +45,7 @@ To compile and run this project, the following tools are required:
 - Once connected, you can start communicating between the `ServerChat` and `ClientChat`.
 
 ### Ending a Session
-- Click the **"Listen"** or **"Connect"** button in the menu bar to stop the current session and start a new one.
+- Click the **"Listen"** or **"Connect"** button in the **"Connection"** menu to stop the current session and start a new one.
 
 ---
 

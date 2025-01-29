@@ -270,6 +270,6 @@ SMainWindow::~SMainWindow()
 
 QSize SMainWindow::sizeHint() const
 {
-    return QSize(800, 500);
+    return QSize(700, 500);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////

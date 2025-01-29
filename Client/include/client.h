@@ -13,6 +13,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QResizeEvent>
 #include <QMenuBar>
 #include <QObject>
 #include <QLabel>
@@ -23,7 +24,6 @@
 #include <cstring>
 #include <vector>
 #include <memory>
-#include <functional>
 #include <optional>
 
 /**
