@@ -5,21 +5,8 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include <QScrollArea>
-#include <QScrollBar>
-#include <QMainWindow>
-#include <QPalette>
-#include <QApplication>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QResizeEvent>
-#include <QMenuBar>
-#include <QObject>
-#include <QLabel>
-#include <QString>
-#include <QtNetwork/QNetworkInterface>
 #include <QDebug>
+#include <QObject>
 
 #include <cstring>
 #include <vector>

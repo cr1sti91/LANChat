@@ -1,6 +1,19 @@
 #ifndef CLIENT_SMAINWINDOW_H
 #define CLIENT_SMAINWINDOW_H
 
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QMainWindow>
+#include <QPalette>
+#include <QApplication>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QResizeEvent>
+#include <QMenuBar>
+#include <QLabel>
+#include <QString>
+
 #include "server.h"
 
 /**
