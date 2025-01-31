@@ -119,7 +119,13 @@ void Server::listen() noexcept
             }
 
             m_acceptor->listen(boost::asio::socket_base::max_connections);
-            m_acceptor->async_accept(*m_sckt, boost::bind(&Server::onAccept, this, boost::placeholders::_1));
+
+            m_acceptor->async_accept(*m_sckt,
+                                     boost::bind(&Server::onAccept,
+                                                 this,
+                                                 boost::asio::placeholders::error
+                                                 )
+                                     );
 
             emit this->listening_on(m_endpoint);
         }
@@ -143,6 +149,10 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
     else
     {
         emit this->connectionStatus("  Connected!");
+
+        // If at least one client is connected to the server, other clients will not be
+        // able to connect until the server terminates the current connection and initiates a new one.
+        m_acceptor->close();
     }
 }
 

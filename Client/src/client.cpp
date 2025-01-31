@@ -60,8 +60,11 @@ void Client::connect(const char* ip_address, const unsigned port) noexcept
             );
 
         m_sckt->async_connect(*m_endpoint,
-                                  boost::bind(&Client::onConnect, this, boost::placeholders::_1)
-                                  );
+                              boost::bind(&Client::onConnect,
+                                          this,
+                                          boost::asio::placeholders::error
+                                          )
+                             );
     }
     catch (const std::exception& e)
     {

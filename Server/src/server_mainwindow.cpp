@@ -211,7 +211,8 @@ void SMainWindow::sendingMessages()
 
 void SMainWindow::displayMessage(const std::string &message)
 {
-    m_messageLabelMutex.lock();
+    boost::lock_guard<boost::mutex> lckgrd(m_messageLabelMutex);
+
     m_messagesLabel->setText(m_messagesLabel->text() + QString::fromStdString(message));
 
     // Adjust the widget size to fit the new content.
@@ -222,7 +223,6 @@ void SMainWindow::displayMessage(const std::string &message)
     m_messagesLabelScroll->verticalScrollBar()->setValue(
         m_messagesLabelScroll->verticalScrollBar()->maximum()
     );
-    m_messageLabelMutex.unlock();
 }
 
 void SMainWindow::cleanup()

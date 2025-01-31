@@ -36,8 +36,8 @@ class Server : public QObject
     Q_OBJECT // For the use of signals.
 
 private: // Fields
-    static constexpr unsigned short THREAD_NR   = 2;            ///< Number of worker threads for Boost.Asio.
-    static constexpr unsigned short SERVER_PORT = 55555;        ///< Default port number for the server.
+    static constexpr unsigned short THREAD_NR      = 2;            ///< Number of worker threads for Boost.Asio.
+    static constexpr unsigned short SERVER_PORT    = 55555;        ///< Default port number for the server.
 
     std::unique_ptr<boost::asio::io_context>        m_io_cntxt;   ///< Boost.Asio IO context.
     std::unique_ptr<boost::asio::io_context::work>  m_work;       ///< Keeps the io_context running.

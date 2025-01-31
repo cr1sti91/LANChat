@@ -230,7 +230,8 @@ void CMainWindow::onConnection(const char* status)
 
 void CMainWindow::displayMessage(const std::string &message)
 {
-    m_messageLabelMutex.lock();
+    boost::lock_guard<boost::mutex> lckgrd(m_messageLabelMutex);
+
     m_messagesLabel->setText(m_messagesLabel->text() + QString::fromStdString(message));
 
     m_messagesLabel->adjustSize();
@@ -239,7 +240,6 @@ void CMainWindow::displayMessage(const std::string &message)
     m_messagesLabelScroll->verticalScrollBar()->setSliderPosition(
         m_messagesLabelScroll->verticalScrollBar()->maximum()
     );
-    m_messageLabelMutex.unlock();
 }
 
 void CMainWindow::cleanup()
