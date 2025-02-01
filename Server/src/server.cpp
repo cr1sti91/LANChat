@@ -191,7 +191,8 @@ void Server::recv() noexcept
     }
     catch (const std::exception& e)
     {
-        emit this->connectionStatus(e.what());
+        if(m_serverStatus.has_value() && m_serverStatus.value())
+            emit this->connectionStatus(e.what());
     }
 }
 
@@ -199,7 +200,9 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes) noe
 {
     if(ec)
     {
-        emit this->connectionStatus("Async_read_some error!");
+        if(m_serverStatus.has_value() && m_serverStatus.value())
+            emit this->connectionStatus("Async_read_some error!");
+
         return;
     }
 
