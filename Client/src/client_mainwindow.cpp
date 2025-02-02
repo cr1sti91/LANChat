@@ -38,15 +38,16 @@ void CMainWindow::resetAtributes()
     m_messagesLabelScroll   = nullptr;
     m_messagesLabelLayout   = nullptr;
 
-    m_userInputLine         = nullptr;
+    m_userInputLEdit        = nullptr;
 
     m_centralWidget         = nullptr;
     m_verticalLayout        = nullptr;
     m_orizontalLayout       = nullptr;
 
     m_sendButton            = nullptr;
-    m_ipAddressInput        = nullptr;
-    m_portInput             = nullptr;
+    m_ipAddressLEdit        = nullptr;
+    m_portLEdit             = nullptr;
+    m_clientNameLEdit       = nullptr;
     m_connectButton         = nullptr;
 }
 
@@ -55,22 +56,26 @@ void CMainWindow::addServerInfo()
     this->addLayouts();
     this->addStatusLable("Waiting for IP address and port...");
 
-    m_ipAddressInput = new QLineEdit(m_centralWidget);
-    m_portInput      = new QLineEdit(m_centralWidget);
-    m_connectButton  = new QPushButton(m_centralWidget);
+    m_clientNameLEdit = new QLineEdit(m_centralWidget);
+    m_ipAddressLEdit  = new QLineEdit(m_centralWidget);
+    m_portLEdit       = new QLineEdit(m_centralWidget);
+    m_connectButton   = new QPushButton(m_centralWidget);
 
     m_connectButton->setPalette(*m_widgetsPalette);
     m_connectButton->setText("Connect");
 
-    m_ipAddressInput->setFixedHeight(30);
-    m_portInput->setFixedHeight(30);
+    m_clientNameLEdit->setFixedHeight(30);
+    m_ipAddressLEdit->setFixedHeight(30);
+    m_portLEdit->setFixedHeight(30);
     m_connectButton->setFixedHeight(40);
 
-    m_ipAddressInput->setPlaceholderText("Type the server IP address...");
-    m_portInput->setPlaceholderText("Type the server port...");
+    m_clientNameLEdit->setPlaceholderText("Type your nickname...");
+    m_ipAddressLEdit->setPlaceholderText("Type the server IP address...");
+    m_portLEdit->setPlaceholderText("Type the server port...");
 
-    m_verticalLayout->addWidget(m_ipAddressInput);
-    m_verticalLayout->addWidget(m_portInput);
+    m_verticalLayout->addWidget(m_clientNameLEdit);
+    m_verticalLayout->addWidget(m_ipAddressLEdit);
+    m_verticalLayout->addWidget(m_portLEdit);
     m_verticalLayout->addWidget(m_connectButton);
 
     m_verticalLayout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
@@ -147,11 +152,11 @@ void CMainWindow::addUserInput()
     m_orizontalLayout = new QHBoxLayout();
     m_verticalLayout->addLayout(m_orizontalLayout);
 
-    m_userInputLine = new QLineEdit(m_centralWidget);
-    m_userInputLine->setPlaceholderText("Type...");
+    m_userInputLEdit = new QLineEdit(m_centralWidget);
+    m_userInputLEdit->setPlaceholderText("Type...");
 
-    m_orizontalLayout->addWidget(m_userInputLine);
-    m_userInputLine->show();
+    m_orizontalLayout->addWidget(m_userInputLEdit);
+    m_userInputLEdit->show();
 
     m_sendButton = new QPushButton(m_centralWidget);
     m_sendButton->setText("Send");
@@ -164,7 +169,7 @@ void CMainWindow::addUserInput()
 
     // Messages are sent either when the 'm_sendButton' button or the Enter key is pressed.
     connect(m_sendButton, &QPushButton::clicked, this, &CMainWindow::sendingMessages);
-    connect(m_userInputLine, &QLineEdit::returnPressed, this, &CMainWindow::sendingMessages);
+    connect(m_userInputLEdit, &QLineEdit::returnPressed, this, &CMainWindow::sendingMessages);
 }
 
 void CMainWindow::addMessagesLabel()
@@ -189,6 +194,12 @@ void CMainWindow::addMessagesLabel()
 
 void CMainWindow::startConnection()
 {
+    if(m_clientName.empty() || m_clientName == "SERVER")
+    {
+        this->setConnectionStatus("Invalid client name!");
+        return;
+    }
+
     // If the m_client is connected, to initiate a new connection, it is
     // necessary to close the previous one.
     if(m_client->is_working().has_value())
@@ -289,19 +300,20 @@ void CMainWindow::getServerInfo()
         }
 
         this->addServerInfo();
-        connect(m_client, &Client::connectionStatus, this, &CMainWindow::connectionStatus);
+        connect(m_client, &Client::connectionStatus, this, &CMainWindow::setConnectionStatus);
     }
 
     connect(m_connectButton, &QPushButton::clicked, this, [this](){
-        m_serverIPaddress = m_ipAddressInput->text().toStdString();
-        m_serverPort = m_portInput->text().toStdString();
+        m_clientName      = m_clientNameLEdit->text().toStdString();
+        m_serverIPaddress = m_ipAddressLEdit->text().toStdString();
+        m_serverPort      = m_portLEdit->text().toStdString();
 
         this->startConnection();
     });
 }
 
 
-void CMainWindow::connectionStatus(const char* status)
+void CMainWindow::setConnectionStatus(const char* status)
 {
     if(m_clientThread != nullptr)
     {
@@ -328,19 +340,18 @@ void CMainWindow::connectionStatus(const char* status)
 
 void CMainWindow::sendingMessages()
 {
-    std::string input = m_userInputLine->text().toStdString();
+    std::string input = m_userInputLEdit->text().toStdString();
+    m_userInputLEdit->clear();
 
     if(input.empty())
         return;
 
-    std::copy(input.begin(), input.end(), std::back_inserter(m_send_buffer));
+    input = std::string("<span style='color: green;'>") + m_clientName + ": </span>" + input + "<br>";
 
-    m_userInputLine->clear();
+    std::copy(input.begin(), input.end(), std::back_inserter(m_send_buffer));
 
     m_client->send(m_send_buffer);
     m_send_buffer.clear();
-
-    input = "<span style='color: green;'>CLIENT: </span>" + input + "<br>";
 
     // Adding text to the messageLabel
     this->displayMessage(input);

@@ -137,7 +137,6 @@ void Client::onRecv(const boost::system::error_code& ec, const size_t bytes)   n
     }
 
     std::string received_message(m_received_buffer.begin(), m_received_buffer.begin() + bytes);
-    received_message = "<span style='color: red;'>SERVER: </span>" + received_message + "<br>";
 
     emit this->message_received(received_message);
 

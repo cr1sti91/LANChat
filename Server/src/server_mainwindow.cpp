@@ -193,17 +193,17 @@ void SMainWindow::startListening()
 void SMainWindow::sendingMessages()
 {
     std::string input = m_userInputLine->text().toStdString();
+    m_userInputLine->clear();
 
     if(input.empty())
         return;
 
+    input = "<span style='color: red;'>SERVER: </span>" + input + "<br>";
+
     std::copy(input.begin(), input.end(), std::back_inserter(m_send_buffer));
-    m_userInputLine->clear();
 
     m_server->send(m_send_buffer);
     m_send_buffer.clear();
-
-    input = "<span style='color: red;'>SERVER: </span>" + input + "<br>";
 
     // Adding text to the messageLabel
     this->displayMessage(input);

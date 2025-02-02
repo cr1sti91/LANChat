@@ -51,7 +51,7 @@ private:
     QScrollArea*    m_messagesLabelScroll   {nullptr};
     QHBoxLayout*    m_messagesLabelLayout   {nullptr};
 
-    QLineEdit*      m_userInputLine         {nullptr};
+    QLineEdit*      m_userInputLEdit        {nullptr};
 
     QWidget*        m_centralWidget         {nullptr};
     QVBoxLayout*    m_verticalLayout        {nullptr};
@@ -59,10 +59,12 @@ private:
 
     QPushButton*    m_sendButton            {nullptr};
 
-    QLineEdit*      m_ipAddressInput        {nullptr};
-    QLineEdit*      m_portInput             {nullptr};
+    QLineEdit*      m_clientNameLEdit       {nullptr};
+    QLineEdit*      m_ipAddressLEdit        {nullptr};
+    QLineEdit*      m_portLEdit             {nullptr};
     QPushButton*    m_connectButton         {nullptr};
 
+    std::string                        m_clientName;
     std::string                        m_serverPort;
     std::string                        m_serverIPaddress;
 
@@ -163,7 +165,7 @@ private slots:
      *        It is connected to the Client::connectionStatus signal.
      * @param status Connection status given by the client object.
      */
-    void connectionStatus(const char* status);
+    void setConnectionStatus(const char* status);
     /**
      * @brief Calls the Client::send method with the argument being the text from userInputLine.
      *        It is called when the sendButton is clicked.
