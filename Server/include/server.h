@@ -26,11 +26,14 @@ class Server : public QObject
 private: // Fields
     static constexpr unsigned short THREAD_NR      = 2;            ///< Number of worker threads for Boost.Asio.
     static constexpr unsigned short SERVER_PORT    = 55555;        ///< Default port number for the server.
+    static constexpr unsigned short MAX_CLIENT_NUM = 5;            ///< Maximum number of clients that can connect.
 
     std::unique_ptr<boost::asio::io_context>        m_io_cntxt;   ///< Boost.Asio IO context.
     std::unique_ptr<boost::asio::io_context::work>  m_work;       ///< Keeps the io_context running.
-    std::unique_ptr<boost::asio::ip::tcp::socket>   m_sckt;       ///< TCP socket for client connections.
     std::unique_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;   ///< TCP acceptor for incoming connections.
+
+    std::vector<std::pair<std::shared_ptr<
+        boost::asio::ip::tcp::socket>, bool>>       m_client_sockets;   ///< TCP sockets for client connections.
 
     // It is passed by signal, therefore it must have a copy constructor
     std::shared_ptr<boost::asio::ip::tcp::endpoint> m_endpoint;   ///< Server endpoint for binding and listening.
@@ -43,6 +46,10 @@ private: // Fields
     std::optional<std::atomic<bool>> m_serverStatus;              ///< Indicates whether the server is active or not.
 
 private: // Methods
+    /**
+     * @brief getLANIPAddress Obtaining the IP address of the device on the LAN.
+     */
+    void getLANIPAddress()                                noexcept;
     /**
      * @brief Handles the completion of an asynchronous accept operation.
      * @param ec Error code resulting from the accept operation.
@@ -58,6 +65,12 @@ private: // Methods
      * @param bytes The number of bytes received.
      */
     void onRecv(const boost::system::error_code& ec, const size_t bytes)    noexcept;
+    /**
+     * @brief onSend
+     * @param ec
+     * @param bytes
+     */
+    void onSend(const boost::system::error_code& ec, const size_t bytes)    noexcept;
 
 
 signals:

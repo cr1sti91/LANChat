@@ -111,7 +111,7 @@ void CMainWindow::addMenu()
     m_optionsMenu    = menuBar()->addMenu("Options");
 
     m_quitAction          = new QAction("Quit", this);
-    m_connectAction       = new QAction("Connect", this);
+    m_connectAction       = new QAction("New Connetion", this);
     m_clearMessagesAction = new QAction("Clear", this);
 
     m_appMenu->addAction(m_quitAction);
