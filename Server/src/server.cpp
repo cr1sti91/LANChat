@@ -46,29 +46,34 @@ void Server::getLANIPAddress() noexcept
 
                 if(m_endpoint)
                     break;
-                else
-                    throw std::runtime_error("No valid m_endpoint found after scanning interfaces!");
             }
         }
 
-
-        // If there is a valid endpoint, m_acceptor start listening
-        boost::system::error_code ec;
-
-        m_acceptor->open(m_endpoint->protocol());
-        m_acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        m_acceptor->bind(*m_endpoint, ec);
-
-        if(ec)
+        if(m_endpoint)
         {
-            emit this->connectionStatus("Invalid m_endpoint (probably the "
-                                        "port is occupied by another instance)!");
-            m_endpoint.reset();
-            m_endpoint = nullptr;
-            return;
-        }
+            // If there is a valid endpoint, m_acceptor start listening
+            boost::system::error_code ec;
 
-        m_acceptor->listen(boost::asio::socket_base::max_connections);
+            m_acceptor->open(m_endpoint->protocol());
+            m_acceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+            m_acceptor->bind(*m_endpoint, ec);
+
+            if(ec)
+            {
+                throw std::runtime_error("Invalid m_endpoint (probably the "
+                                         "port is occupied by another instance)!");
+
+                m_endpoint.reset();
+                m_endpoint = nullptr;
+                return;
+            }
+
+            m_acceptor->listen(MAX_CLIENT_NUM);
+        }
+        else
+        {
+            throw std::runtime_error("No valid m_endpoint found after scanning interfaces!");
+        }
     }
     catch(const std::exception& e)
     {
@@ -77,7 +82,8 @@ void Server::getLANIPAddress() noexcept
 }
 
 
-void Server::onAccept(const boost::system::error_code &ec) noexcept
+void Server::onAccept(const boost::system::error_code &ec,
+                      const short socket_index)              noexcept
 {
     if(ec)
     {
@@ -87,13 +93,15 @@ void Server::onAccept(const boost::system::error_code &ec) noexcept
     {
         emit this->connectionStatus("  Connected!");
 
-        if(!(m_client_sockets.size() < MAX_CLIENT_NUM))
+        // The socket is connected and the async_read method can be called for it.
+        m_connections.at(socket_index)->state = true;
+
+        // If the number of clients connected to the server exceeds the maximum
+        // number, the acceptor closes
+        if(!(m_connections.size() < MAX_CLIENT_NUM))
             m_acceptor->close();
         else
-        {
-            this->recv();
             this->listen();
-        }
     }
 }
 
@@ -119,6 +127,29 @@ void Server::workerThread() noexcept
     }
 }
 
+void Server::recv(const short socket_index) noexcept
+{
+    try
+    {
+        if(m_serverStatus.has_value() && m_serverStatus.value())
+        {
+            m_connections.at(socket_index)->socket->async_read_some(
+                boost::asio::buffer(m_received_buffer, m_received_buffer.size()),
+                boost::bind(&Server::onRecv,
+                            this,
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred
+                            )
+                );
+        }
+    }
+    catch (const std::exception& e)
+    {
+        if(m_serverStatus.has_value() && m_serverStatus.value())
+            emit this->connectionStatus(e.what());
+    }
+}
+
 void Server::onRecv(const boost::system::error_code& ec, const size_t bytes) noexcept
 {
     if(ec)
@@ -133,10 +164,10 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes) noe
 
     emit message_received(received_message);
 
-    this->recv();
+    // this->recv();
 }
 
-void Server::onSend(const boost::system::error_code &ec, const size_t bytes) noexcept
+void Server::onSend(const boost::system::error_code& ec, const size_t bytes) noexcept
 {
     if(ec)
     {
@@ -150,7 +181,8 @@ void Server::onSend(const boost::system::error_code &ec, const size_t bytes) noe
 ///
 Server::Server(QObject* parent) : QObject(parent),
                                   m_endpoint(nullptr),
-                                  m_serverStatus(std::nullopt)
+                                  m_serverStatus(std::nullopt),
+                                  m_hasEverConnected(false)
 {
     // Initialization
     m_io_cntxt   = std::make_unique<boost::asio::io_context>();
@@ -173,7 +205,12 @@ Server::~Server()
     m_threads.join_all();
 }
 
-const std::optional<std::atomic<bool>> &Server::is_working() const
+bool &Server::getHasEverConnected() noexcept
+{
+    return m_hasEverConnected;
+}
+
+const std::optional<std::atomic<bool>> &Server::is_working() const noexcept
 {
     return m_serverStatus;
 }
@@ -182,28 +219,34 @@ void Server::listen() noexcept
 {
     m_serverStatus = true;
 
+    if(!m_hasEverConnected)
+        m_hasEverConnected = true;
+
     if(!m_endpoint)
         this->getLANIPAddress();
 
-    try
-    {        
-        // Initializing a socket for a connection (false means that it's not connected)
-        m_client_sockets.push_back(
-            {std::make_shared<boost::asio::ip::tcp::socket>(*m_io_cntxt), false}
-        );
 
-        m_acceptor->async_accept(*m_client_sockets.at(m_client_sockets.size() - 1).first,
-                                 boost::bind(&Server::onAccept,
-                                             this,
-                                             boost::asio::placeholders::error
-                                             )
-                                 );
-
-        emit this->listening_on(m_endpoint);
-    }
-    catch (const std::exception& e)
+    if(m_connections.size() < MAX_CLIENT_NUM)
     {
-        emit this->connectionStatus(e.what());
+        try
+        {
+            // Initializing a socket for a connection (false means that it's not connected)
+            m_connections.push_back(new Connection);
+
+            m_acceptor->async_accept(*m_connections.at(m_connections.size() - 1)->socket,
+                                     boost::bind(&Server::onAccept,
+                                                 this,
+                                                 boost::asio::placeholders::error,
+                                                 m_connections.size() - 1 // Must be corrected later
+                                                 )
+                                     );
+
+            emit this->listening_on(m_endpoint);
+        }
+        catch (const std::exception& e)
+        {
+            emit this->connectionStatus(e.what());
+        }
     }
 }
 
@@ -212,9 +255,9 @@ void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
 {
     try
     {
-        for(auto& [socket, state] : m_client_sockets)
+        for(auto& connection : m_connections)
         {
-            boost::asio::async_write(*socket,
+            boost::asio::async_write(*connection->socket,
                                      boost::asio::buffer(send_buffer),
                                      boost::bind(&Server::onSend,
                                                  this,
@@ -230,27 +273,12 @@ void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
     }
 }
 
-
-void Server::recv() noexcept
+void Server::startRecv() noexcept
 {
-    try
+    for(short i = 0; i < m_connections.size(); ++i)
     {
-        if(m_serverStatus.has_value() && m_serverStatus.value())
-        {
-            m_client_sockets.at(m_client_sockets.size() - 1).first->async_read_some(
-                boost::asio::buffer(m_received_buffer, m_received_buffer.size()),
-                boost::bind(&Server::onRecv,
-                            this,
-                            boost::asio::placeholders::error,
-                            boost::asio::placeholders::bytes_transferred
-                            )
-            );
-        }
-    }
-    catch (const std::exception& e)
-    {
-        if(m_serverStatus.has_value() && m_serverStatus.value())
-            emit this->connectionStatus(e.what());
+        if(m_connections.at(i)->state)
+            this->recv(i);
     }
 }
 
@@ -263,8 +291,8 @@ void Server::closeConnection() noexcept
 
     try
     {
-        // When the server starts a new connection session, all current connections are closed.b
-        for(auto& [socket, state] : m_client_sockets)
+        // When the server starts a new connection session, all current connections are closed.
+        for(auto& [socket, state] : m_connections)
         {
             if(socket->is_open())
             {

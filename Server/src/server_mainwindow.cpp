@@ -173,8 +173,6 @@ void SMainWindow::startListening()
     }
     else
     {
-        m_hasEverConnected = true;
-
         //Deleting the central widget to create a new one.
         if(m_centralWidget)
         {
@@ -269,7 +267,7 @@ void SMainWindow::connectionStatus(const char* status)
         this->addMessagesLabel();
         this->addUserInput();
 
-        m_server->recv();
+        m_server->startRecv();
 
         connect(m_server,&Server::message_received, this, &SMainWindow::displayMessage);
     }
@@ -293,7 +291,7 @@ void SMainWindow::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
 
-    if(!m_hasEverConnected)
+    if(!m_server->getHasEverConnected())
         this->adjustFontSize(event->size().width() / 12);
 }
 
@@ -302,8 +300,7 @@ void SMainWindow::resizeEvent(QResizeEvent *event)
 ///
 SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
                                             m_server(new Server(this)),
-                                            m_serverThread(nullptr),
-                                            m_hasEverConnected(false)
+                                            m_serverThread(nullptr)
 {
     this->initWelcomeScreen();
 
