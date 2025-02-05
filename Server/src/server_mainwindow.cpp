@@ -78,6 +78,10 @@ void SMainWindow::addMenu()
     m_quitAction          = new QAction("Quit", this);
     m_listenAction        = new QAction("Listen", this);
     m_clearMessagesAction = new QAction("Clear", this);
+    m_GroupChatFalse      = new QAction("False", this);
+    m_GroupChatTrue       = new QAction("True", this);
+
+    m_optionsMenu->addMenu("Set Group Chat")->addActions({m_GroupChatTrue, m_GroupChatFalse});
 
     m_appMenu->addAction(m_quitAction);
     m_listenMenu->addAction(m_listenAction);
@@ -86,6 +90,9 @@ void SMainWindow::addMenu()
     connect(m_quitAction, &QAction::triggered, this, [this](){ QApplication::quit(); });
     connect(m_listenAction, &QAction::triggered, this, &SMainWindow::startListening);
     connect(m_clearMessagesAction, &QAction::triggered, this, &SMainWindow::clearMessages);
+
+    connect(m_GroupChatFalse, &QAction::triggered, this, [this](){ m_server->setGroupChat(false); });
+    connect(m_GroupChatTrue, &QAction::triggered, this, [this](){ m_server->setGroupChat(true); });
 }
 
 void SMainWindow::addStatusLable()
@@ -165,6 +172,7 @@ void SMainWindow::startListening()
 
         if(m_serverThread != nullptr)
         {
+            m_serverThread->join();
             m_serverThread.reset(nullptr);
         }
 
@@ -173,8 +181,6 @@ void SMainWindow::startListening()
     }
     else
     {
-        m_hasEverConnected = true;
-
         //Deleting the central widget to create a new one.
         if(m_centralWidget)
         {
@@ -250,14 +256,6 @@ void SMainWindow::setStatusLabel(const std::shared_ptr<boost::asio::ip::tcp::end
 
 void SMainWindow::connectionStatus(const char* status)
 {
-    if(m_serverThread != nullptr)
-    {
-        // m_serverThread is deleted because the attempt to connect has finished.
-        m_serverThread->join();
-        m_serverThread.reset(nullptr);
-        m_serverThread = nullptr;
-    }
-
     QPalette labelPalette;
     m_connectionStatusLabel->setText(status);
 
@@ -266,12 +264,17 @@ void SMainWindow::connectionStatus(const char* status)
 
     if(!std::strcmp(status, "  Connected!"))
     {
-        this->addMessagesLabel();
-        this->addUserInput();
+        // The graphical interface for displaying messages is initialized only when
+        // the first client is connected.
+        if(m_server->getClientNum() == 1)
+        {
+            this->addMessagesLabel();
+            this->addUserInput();
 
-        m_server->recv();
+            connect(m_server,&Server::message_received, this, &SMainWindow::displayMessage);
+        }
 
-        connect(m_server,&Server::message_received, this, &SMainWindow::displayMessage);
+        m_server->startRecv();
     }
 }
 
@@ -293,7 +296,7 @@ void SMainWindow::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
 
-    if(!m_hasEverConnected)
+    if(!m_server->getHasEverConnected())
         this->adjustFontSize(event->size().width() / 12);
 }
 
@@ -302,8 +305,7 @@ void SMainWindow::resizeEvent(QResizeEvent *event)
 ///
 SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
                                             m_server(new Server(this)),
-                                            m_serverThread(nullptr),
-                                            m_hasEverConnected(false)
+                                            m_serverThread(nullptr)
 {
     this->initWelcomeScreen();
 
