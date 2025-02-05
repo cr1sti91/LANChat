@@ -59,7 +59,7 @@ void Server::listen() noexcept
     try
     {
         // Finding the LAN IP address on Linux/Windows (only wi-fi or ethernet)
-        QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
+        const QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
 
         for (const QNetworkInterface &iface : interfaces)
         {
@@ -81,7 +81,7 @@ void Server::listen() noexcept
 #endif
             if (wifi_or_ethernet)
             {
-                QList<QNetworkAddressEntry> entries = iface.addressEntries();
+                const QList<QNetworkAddressEntry> entries = iface.addressEntries();
                 for (const QNetworkAddressEntry &entry : entries)
                 {
                     // If the address is not local to the device only, but is part of the LAN,
