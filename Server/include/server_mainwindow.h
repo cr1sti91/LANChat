@@ -40,6 +40,8 @@ private: // Fields
     QAction*        m_quitAction            {nullptr};
     QAction*        m_listenAction          {nullptr};
     QAction*        m_clearMessagesAction   {nullptr};
+    QAction*        m_GroupChatTrue         {nullptr};
+    QAction*        m_GroupChatFalse        {nullptr};
 
     QLabel*         m_welcomeLabel          {nullptr};
     QLabel*         m_connectionStatusLabel {nullptr};

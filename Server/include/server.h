@@ -33,10 +33,13 @@ class Server : public QObject
     struct Connection
     {
         std::shared_ptr<boost::asio::ip::tcp::socket> socket; ///< Client socket.
-        std::optional<bool> state;                            ///< Socket status (initialized,
-                                                              ///< connected, and reading from)
+        bool state;                                           ///< Socket status (connected or not)
 
-        Connection() : socket(nullptr), state(std::nullopt) {}
+        Connection(boost::asio::io_context& io_cntxt) :
+            socket(std::make_shared<boost::asio::ip::tcp::socket>(io_cntxt)),
+            state(false)
+        {
+        }
         ~Connection() = default;
     };
 
@@ -63,6 +66,8 @@ private: // Fields
 
     bool                             m_hasEverConnected;          ///< Indicates whether the server has had at least some
                                                                   ///< connections (or has).
+    bool                             m_isGroupChat;               ///< If true, the message received from a client is automatically
+                                                                  ///< sent to the rest of the active clients.
 
 private: // Methods
     /**
@@ -72,6 +77,7 @@ private: // Methods
     /**
      * @brief Handles the completion of an asynchronous accept operation.
      * @param ec Error code resulting from the accept operation.
+     * @param socket_index The index of the socket
      */
     void onAccept(const boost::system::error_code& ec,
                   const short socket_index)               noexcept;
@@ -88,8 +94,11 @@ private: // Methods
      * @brief Handles completion of a receive operation.
      * @param ec The error code from the operation.
      * @param bytes The number of bytes received.
+     * @param socket_index The index of the socket for which the onRecv method calls
+     *        the recv method
      */
-    void onRecv(const boost::system::error_code& ec, const size_t bytes)    noexcept;
+    void onRecv(const boost::system::error_code& ec, const size_t bytes,
+                const short socket_index)                                  noexcept;
     /**
      * @brief onSend
      * @param ec
@@ -127,6 +136,11 @@ public:
      */
     ~Server();
     /**
+     * @brief setGroupChat Setter for the m_isGroupChat field.
+     * @param value New value.
+     */
+    void setGroupChat(const bool value)                              noexcept;
+    /**
      * @brief getHasEverConnected
      * @return Returns a bool value indicating whether the server has had at
      *         least one connection (or has).
@@ -140,14 +154,22 @@ public:
      */
     const std::optional<std::atomic<bool>>& is_working()       const noexcept;
     /**
-     * @brief Starts the server and listens for incoming connections.
+     * @brief getClientNum
+     * @return
      */
+    short getClientNum()                                       const noexcept;
+    /**
+     * @brief Starts the server and listens for incoming connections.
+     */    
     void listen()                                                    noexcept;
     /**
      * @brief Sends data to the connected client.
      * @param send_buffer Buffer containing data to be sent.
+     * @param socket_index If the socket index is not specified, the
+     *        message is sent to all active clients.
      */
-    void send(const std::vector<boost::uint8_t>& send_buffer)        noexcept;
+    void send(const std::vector<boost::uint8_t>& send_buffer,
+              std::optional<short> socket_index = std::nullopt)      noexcept;
     /**
      * @brief Starts receiving data from the client.
      */

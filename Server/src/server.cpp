@@ -82,8 +82,7 @@ void Server::getLANIPAddress() noexcept
 }
 
 
-void Server::onAccept(const boost::system::error_code &ec,
-                      const short socket_index)              noexcept
+void Server::onAccept(const boost::system::error_code &ec, const short socket_index) noexcept
 {
     if(ec)
     {
@@ -91,10 +90,10 @@ void Server::onAccept(const boost::system::error_code &ec,
     }
     else
     {
-        emit this->connectionStatus("  Connected!");
-
         // The socket is connected and the async_read method can be called for it.
         m_connections.at(socket_index)->state = true;
+
+        emit this->connectionStatus("  Connected!");
 
         // If the number of clients connected to the server exceeds the maximum
         // number, the acceptor closes
@@ -138,7 +137,8 @@ void Server::recv(const short socket_index) noexcept
                 boost::bind(&Server::onRecv,
                             this,
                             boost::asio::placeholders::error,
-                            boost::asio::placeholders::bytes_transferred
+                            boost::asio::placeholders::bytes_transferred,
+                            socket_index
                             )
                 );
         }
@@ -150,7 +150,8 @@ void Server::recv(const short socket_index) noexcept
     }
 }
 
-void Server::onRecv(const boost::system::error_code& ec, const size_t bytes) noexcept
+void Server::onRecv(const boost::system::error_code& ec, const size_t bytes,
+                    const short socket_index)                                  noexcept
 {
     if(ec)
     {
@@ -164,7 +165,22 @@ void Server::onRecv(const boost::system::error_code& ec, const size_t bytes) noe
 
     emit message_received(received_message);
 
-    // this->recv();
+    // If m_isGroupChat is true, the message received from a client is automatically sent to
+    // the rest of the active clients.
+    if(m_isGroupChat)
+    {
+        std::vector<boost::uint8_t> echo_buffer(m_received_buffer.begin(),
+                                                m_received_buffer.begin() + bytes);
+        for(short i = 0; i < m_connections.size(); ++i)
+        {
+            if(i == socket_index)
+                continue;
+            else
+                this->send(echo_buffer, i);
+        }
+    }
+
+    this->recv(socket_index);
 }
 
 void Server::onSend(const boost::system::error_code& ec, const size_t bytes) noexcept
@@ -179,10 +195,12 @@ void Server::onSend(const boost::system::error_code& ec, const size_t bytes) noe
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC METHODS
 ///
-Server::Server(QObject* parent) : QObject(parent),
-                                  m_endpoint(nullptr),
-                                  m_serverStatus(std::nullopt),
-                                  m_hasEverConnected(false)
+Server::Server(QObject* parent)
+    : QObject(parent),
+      m_endpoint(nullptr),
+      m_serverStatus(std::nullopt),
+      m_hasEverConnected(false),
+      m_isGroupChat(false)
 {
     // Initialization
     m_io_cntxt   = std::make_unique<boost::asio::io_context>();
@@ -203,8 +221,19 @@ Server::~Server()
         this->finish();
 
     m_threads.join_all();
+
+    for(auto& connection : m_connections)
+        delete connection;
 }
 
+void Server::setGroupChat(const bool value) noexcept
+{
+    m_isGroupChat = value;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// PUBLIC METHODS (STATUS GETTERS)
+///
 bool &Server::getHasEverConnected() noexcept
 {
     return m_hasEverConnected;
@@ -214,6 +243,16 @@ const std::optional<std::atomic<bool>> &Server::is_working() const noexcept
 {
     return m_serverStatus;
 }
+
+short Server::getClientNum() const noexcept
+{
+    short num = 0;
+    for(const auto& connection : m_connections)
+        if(connection->state) ++num;
+
+    return num;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Server::listen() noexcept
 {
@@ -231,7 +270,7 @@ void Server::listen() noexcept
         try
         {
             // Initializing a socket for a connection (false means that it's not connected)
-            m_connections.push_back(new Connection);
+            m_connections.push_back(new Connection(*m_io_cntxt));
 
             m_acceptor->async_accept(*m_connections.at(m_connections.size() - 1)->socket,
                                      boost::bind(&Server::onAccept,
@@ -251,20 +290,44 @@ void Server::listen() noexcept
 }
 
 
-void Server::send(const std::vector<boost::uint8_t>& send_buffer) noexcept
+void Server::send(const std::vector<boost::uint8_t>& send_buffer,
+                  std::optional<short> socket_index)                  noexcept
 {
     try
     {
-        for(auto& connection : m_connections)
+        if(socket_index.has_value())
         {
-            boost::asio::async_write(*connection->socket,
-                                     boost::asio::buffer(send_buffer),
-                                     boost::bind(&Server::onSend,
-                                                 this,
-                                                 boost::asio::placeholders::error,
-                                                 boost::asio::placeholders::bytes_transferred
-                                                 )
-                                      );
+            auto& connection = m_connections.at(socket_index.value());
+
+            if(connection->state)
+            {
+                boost::asio::async_write(*connection->socket,
+                                         boost::asio::buffer(send_buffer),
+                                         boost::bind(&Server::onSend,
+                                                     this,
+                                                     boost::asio::placeholders::error,
+                                                     boost::asio::placeholders::bytes_transferred
+                                                     )
+                                         );
+            }
+        }
+        else
+        {
+            for(auto& connection : m_connections)
+            {
+                // If the socket is connected, then writing to it is allowed.
+                if(connection->state)
+                {
+                    boost::asio::async_write(*connection->socket,
+                                             boost::asio::buffer(send_buffer),
+                                             boost::bind(&Server::onSend,
+                                                         this,
+                                                         boost::asio::placeholders::error,
+                                                         boost::asio::placeholders::bytes_transferred
+                                                         )
+                                             );
+                }
+            }
         }
     }
     catch (const std::exception& e)
@@ -292,14 +355,19 @@ void Server::closeConnection() noexcept
     try
     {
         // When the server starts a new connection session, all current connections are closed.
-        for(auto& [socket, state] : m_connections)
+        for(auto& connection : m_connections)
         {
-            if(socket->is_open())
+            if(connection->state)
             {
-                socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-                socket->close(ec);
+                connection->state = false;
 
-                if(ec) emit connectionStatus("Error on socket shutdown/close!");
+                if(connection->socket->is_open())
+                {
+                    connection->socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+                    connection->socket->close(ec);
+
+                    if(ec) emit connectionStatus("Error on socket shutdown/close!");
+                }
             }
         }
 
