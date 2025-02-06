@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <vector>
+#include <cstdint>
 #include <memory>
 #include <optional>
 
@@ -44,23 +45,23 @@ class Server : public QObject
     };
 
 private: // Fields
-    static constexpr unsigned short THREAD_NR      = 2;           ///< Number of worker threads for Boost.Asio.
-    static constexpr unsigned short SERVER_PORT    = 55555;       ///< Default port number for the server.
-    static constexpr unsigned short MAX_CLIENT_NUM = 5;           ///< Maximum number of clients that can connect.
+    static constexpr std::uint8_t THREAD_NR      = 2;           ///< Number of worker threads for Boost.Asio.
+    static constexpr unsigned     SERVER_PORT    = 55555;       ///< Default port number for the server.
+    static constexpr std::uint8_t MAX_CLIENT_NUM = 5;           ///< Maximum number of clients that can connect.
 
     std::unique_ptr<boost::asio::io_context>        m_io_cntxt;   ///< Boost.Asio IO context.
     std::unique_ptr<boost::asio::io_context::work>  m_work;       ///< Keeps the io_context running.
     std::unique_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;   ///< TCP acceptor for incoming connections.
 
-    std::vector<Connection*>                      m_connections;   ///< TCP client connections.
+    std::vector<Connection*>                        m_connections;///< TCP client connections.
 
     // It is passed by signal, therefore it must have a copy constructor
     std::shared_ptr<boost::asio::ip::tcp::endpoint> m_endpoint;   ///< Server endpoint for binding and listening.
 
     boost::thread_group              m_threads;                   ///< Worker threads for handling asynchronous operations.
 
-    std::vector<boost::uint8_t>      m_received_buffer;           ///< Buffer for storing received data.
-    std::vector<boost::uint8_t>      m_send_buffer;               ///< Buffer for storing data to send.
+    std::vector<std::uint8_t>        m_received_buffer;           ///< Buffer for storing received data.
+    std::vector<std::uint8_t>        m_send_buffer;               ///< Buffer for storing data to send.
 
     std::optional<std::atomic<bool>> m_serverStatus;              ///< Indicates whether the server is active or not.
 
@@ -71,25 +72,34 @@ private: // Fields
 
 private: // Methods
     /**
-     * @brief getLANIPAddress Obtaining the IP address of the device on the LAN.
+     * @brief findLANIPAddress Obtaining the IP address of the device on the LAN.
      */
-    void getLANIPAddress()                                noexcept;
+    void findLANIPAddress()                                noexcept;
+    /**
+     * @brief getSocketIndex
+     * @return
+     */
+    std::optional<std::uint8_t> getSocketIndex()           noexcept;
+    /**
+     * @brief Listens for incoming connections.
+     */
+    void acceptConnection()                                noexcept;
     /**
      * @brief Handles the completion of an asynchronous accept operation.
      * @param ec Error code resulting from the accept operation.
      * @param socket_index The index of the socket
      */
     void onAccept(const boost::system::error_code& ec,
-                  const short socket_index)               noexcept;
+                  const std::uint8_t socket_index)          noexcept;
     /**
      * @brief Runs the Boost.Asio IO context in a separate worker thread.
      */
-    void workerThread()                                   noexcept;
+    void workerThread()                                     noexcept;
     /**
      * @brief Server::recv
      * @param socket_index
      */
-    void recv(const short socket_index)                   noexcept;
+    void recv(const std::uint8_t socket_index)              noexcept;
     /**
      * @brief Handles completion of a receive operation.
      * @param ec The error code from the operation.
@@ -98,7 +108,7 @@ private: // Methods
      *        the recv method
      */
     void onRecv(const boost::system::error_code& ec, const size_t bytes,
-                const short socket_index)                                  noexcept;
+                const std::uint8_t socket_index)                            noexcept;
     /**
      * @brief onSend
      * @param ec
@@ -157,19 +167,19 @@ public:
      * @brief getClientNum
      * @return
      */
-    short getClientNum()                                       const noexcept;
+    uint8_t getClientNum()                                       const noexcept;
     /**
-     * @brief Starts the server and listens for incoming connections.
-     */    
-    void listen()                                                    noexcept;
+     * @brief startConnection Starts the server and listens for incoming connections.
+     */
+    void startConnection()                                           noexcept;
     /**
      * @brief Sends data to the connected client.
      * @param send_buffer Buffer containing data to be sent.
      * @param socket_index If the socket index is not specified, the
      *        message is sent to all active clients.
      */
-    void send(const std::vector<boost::uint8_t>& send_buffer,
-              std::optional<short> socket_index = std::nullopt)      noexcept;
+    void send(const std::vector<std::uint8_t>& send_buffer,
+              std::optional<std::uint8_t> socket_index = std::nullopt)noexcept;
     /**
      * @brief Starts receiving data from the client.
      */

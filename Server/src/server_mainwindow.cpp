@@ -191,7 +191,7 @@ void SMainWindow::startListening()
         connect(m_server, &Server::connectionStatus, this, &SMainWindow::connectionStatus);
     }
 
-    m_serverThread = std::make_unique<boost::thread>(&Server::listen, m_server);
+    m_serverThread = std::make_unique<boost::thread>(&Server::startConnection, m_server);
     this->addLayouts();
     this->addStatusLable();
 }
