@@ -45,6 +45,7 @@ private: // Fields
 
     QLabel*         m_welcomeLabel          {nullptr};
     QLabel*         m_connectionStatusLabel {nullptr};
+    QLabel*         m_clientNumLabel        {nullptr};
     QLabel*         m_messagesLabel         {nullptr};
 
     QScrollArea*    m_messagesLabelScroll   {nullptr};
@@ -83,6 +84,10 @@ private: // Methods
      * @brief resetAtributes Reset pointers to widgets with nullptr
      */
     void resetAtributes();
+    /**
+     * @brief resetCentralWidget
+     */
+    void deleteCentralWidget();
     /**
      * @brief Sets the palette for the application window and buttons.
      *        It is called in the SMainWindow constructor.

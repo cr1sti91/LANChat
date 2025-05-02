@@ -33,6 +33,7 @@ void SMainWindow::resetAtributes()
         m_welcomeLabel = nullptr;
 
     m_connectionStatusLabel = nullptr;
+    m_clientNumLabel        = nullptr;
     m_messagesLabel         = nullptr;
 
     m_messagesLabelScroll   = nullptr;
@@ -45,6 +46,16 @@ void SMainWindow::resetAtributes()
     m_orizontalLayout       = nullptr;
 
     m_sendButton            = nullptr;
+}
+
+void SMainWindow::deleteCentralWidget()
+{
+    //Deleting the central widget to create a new one
+    if(m_centralWidget)
+    {
+        delete m_centralWidget;
+        resetAtributes();
+    }
 }
 
 void SMainWindow::setPalettes()
@@ -99,14 +110,32 @@ void SMainWindow::addStatusLable()
 {
     m_connectionStatusLabel = new QLabel(m_centralWidget);
     m_connectionStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
-    m_connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // To be able to copy the address and port, being selected
     m_connectionStatusLabel->setTextInteractionFlags(Qt::TextSelectableByMouse |
                                                      Qt::TextSelectableByKeyboard);
 
-    m_verticalLayout->addWidget(m_connectionStatusLabel, 1, Qt::AlignTop);
-    m_connectionStatusLabel->show();
+    if(m_server->getClientNum() == 0)
+    {
+        m_connectionStatusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+        m_verticalLayout->addWidget(m_connectionStatusLabel, 1, Qt::AlignTop);
+    }
+    else
+    {
+        m_connectionStatusLabel->setAlignment(Qt::AlignTop);
+
+        m_clientNumLabel = new QLabel(m_centralWidget);
+        m_clientNumLabel->setFrameStyle(m_connectionStatusLabel->frameStyle());
+        m_clientNumLabel->setAlignment(Qt::AlignTop);
+        m_clientNumLabel->setText("Connected clients: " + QString::number(m_server->getClientNum()));
+
+        QHBoxLayout* orizontalLayout = new QHBoxLayout();
+        orizontalLayout->addWidget(m_connectionStatusLabel);
+        orizontalLayout->addWidget(m_clientNumLabel);
+
+        m_verticalLayout->addLayout(orizontalLayout, 1);
+    }
 
 
     connect(m_server, &Server::listening_on, this, &SMainWindow::setStatusLabel);
@@ -164,11 +193,7 @@ void SMainWindow::startListening()
     {
         disconnect(m_server, &Server::message_received, nullptr, nullptr);
 
-        if(m_centralWidget)
-        {
-            delete m_centralWidget;
-            resetAtributes();
-        }
+        this->deleteCentralWidget();
 
         if(m_serverThread != nullptr)
         {
@@ -179,14 +204,9 @@ void SMainWindow::startListening()
         m_server->closeConnection();
 
     }
-    else
+    else if(m_server->is_working().has_value() == false)
     {
-        //Deleting the central widget to create a new one.
-        if(m_centralWidget)
-        {
-            delete m_centralWidget;
-            this->resetAtributes();
-        }
+        this->deleteCentralWidget();
 
         connect(m_server, &Server::connectionStatus, this, &SMainWindow::connectionStatus);
     }
@@ -268,6 +288,11 @@ void SMainWindow::connectionStatus(const char* status)
         // the first client is connected.
         if(m_server->getClientNum() == 1)
         {
+            this->deleteCentralWidget();
+
+            //Initialization of new widgets.
+            this->addLayouts();
+            this->addStatusLable();
             this->addMessagesLabel();
             this->addUserInput();
 
@@ -308,7 +333,6 @@ SMainWindow::SMainWindow(QWidget *parent) : QMainWindow(parent),
                                             m_serverThread(nullptr)
 {
     this->initWelcomeScreen();
-
     this->setPalettes();
     this->addMenu();
 }
@@ -317,11 +341,7 @@ SMainWindow::~SMainWindow()
 {
     m_server->finish();
 
-    if(m_centralWidget)
-    {
-        delete m_centralWidget;
-        this->resetAtributes();
-    }
+    this->deleteCentralWidget();
 
     this->cleanup();
 }
